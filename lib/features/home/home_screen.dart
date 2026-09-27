@@ -11,6 +11,9 @@ import 'package:glucomi/features/home/widgets/home_dock_bar.dart';
 import 'package:glucomi/features/home/widgets/home_hero.dart';
 import 'package:glucomi/features/home/widgets/month_calendar_sheet.dart';
 import 'package:glucomi/features/home/widgets/week_calendar_card.dart';
+import 'package:glucomi/features/meal/meal_food_repository.dart';
+import 'package:glucomi/features/meal/meal_models.dart';
+import 'package:glucomi/features/meal/meal_record_screen.dart';
 
 /// MO-HOME-010 홈
 class HomeScreen extends StatefulWidget {
@@ -20,6 +23,7 @@ class HomeScreen extends StatefulWidget {
     this.onRefresh,
     this.onAddRecord,
     this.onSelectDate,
+    this.mealRepository,
   });
 
   final HomeData data;
@@ -32,6 +36,9 @@ class HomeScreen extends StatefulWidget {
 
   /// 달력 전체보기에서 날짜를 골랐을 때
   final ValueChanged<DateTime>? onSelectDate;
+
+  /// 음식 검색 데이터 (있으면 + 메뉴의 식단에서 음식 기록하기 화면을 엶)
+  final MealFoodRepository? mealRepository;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -48,8 +55,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final GlobalKey _fabKey = GlobalKey();
 
+  /// 이 화면에서 새로 기록한 항목 (서버 연동 전까지 화면에만 반영)
+  final List<DailyRecord> _addedRecords = [];
+
+  HomeData get _data => widget.data.withAddedRecords(_addedRecords);
+
   Future<void> _openCalendar() async {
-    final data = widget.data;
+    final data = _data;
     final picked = await showMonthCalendarSheet(
       context,
       today: data.date,
@@ -81,9 +93,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (widget.onAddRecord != null) {
       widget.onAddRecord!(type);
+    } else if (type == AddRecordType.food && widget.mealRepository != null) {
+      await _openMealRecord(widget.mealRepository!);
     } else {
       _notReady('${type.label} 기록');
     }
+  }
+
+  Future<void> _openMealRecord(MealFoodRepository repository) async {
+    final record = await Navigator.of(context).push<MealRecord>(
+      MaterialPageRoute(
+        builder: (_) => MealRecordScreen(repository: repository),
+      ),
+    );
+    if (record == null || record.entries.isEmpty || !mounted) return;
+
+    final carbs = record.carbs.round();
+    setState(() {
+      _addedRecords.add(
+        DailyRecord(
+          time: record.time,
+          type: DailyRecordType.food,
+          title: record.title,
+          details: ['총 ${record.kcal.round()} kcal', '총 탄수화물 $carbs g'],
+          carbsGram: carbs.toDouble(),
+        ),
+      );
+    });
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('식단을 기록했어요.')));
   }
 
   void _notReady(String feature) {
@@ -94,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final data = widget.data;
+    final data = _data;
     final topInset = MediaQuery.paddingOf(context).top;
 
     return Scaffold(

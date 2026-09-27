@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
 import 'package:glucomi/features/home/widgets/calendar_day.dart';
+import 'package:glucomi/features/meal/meal_food_repository.dart';
 
 void main() {
   Future<void> mount(WidgetTester tester, HomeData data) async {
@@ -49,6 +50,28 @@ void main() {
 
     expect(find.text('식단'), findsNothing);
     expect(find.text('식단 기록 준비 중입니다.'), findsOneWidget);
+  });
+
+  testWidgets('음식 데이터가 있으면 식단을 눌러 음식 기록하기로 이동', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          data: HomeData.empty(),
+          mealRepository: SampleMealFoodRepository(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('home-add-record')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('식단'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('음식 기록하기'), findsOneWidget);
   });
 
   testWidgets('기록 메뉴는 닫기 버튼으로 닫힘', (tester) async {
