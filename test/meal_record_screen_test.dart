@@ -51,8 +51,15 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('meal-search-field')), '밥');
     await tester.pumpAndSettle();
 
-    expect(find.text('햇반'), findsOneWidget);
+    expect(find.text('흑미밥'), findsOneWidget);
+    expect(find.text('김밥'), findsOneWidget);
     expect(find.text('찾고 계신 ‘밥’이 없으신가요?'), findsOneWidget);
+    // 검색 요령 안내는 목록 아래쪽에 있어서 스크롤해서 확인
+    await tester.dragUntilVisible(
+      find.text('이렇게 해보는건 어때요?'),
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
     expect(find.text('이렇게 해보는건 어때요?'), findsOneWidget);
     expect(find.text('즐겨찾기'), findsNothing);
 

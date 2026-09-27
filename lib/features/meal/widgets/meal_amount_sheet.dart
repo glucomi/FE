@@ -140,12 +140,23 @@ class _MealAmountSheetState extends State<MealAmountSheet> {
                   color: AppColors.foregroundPrimary,
                 ),
               ),
-              const Spacer(),
-              _Nutrient(label: '탄', grams: _entry.carbs),
-              const SizedBox(width: AppSpacing.spacing6),
-              _Nutrient(label: '단', grams: _entry.protein),
-              const SizedBox(width: AppSpacing.spacing6),
-              _Nutrient(label: '지', grams: _entry.fat),
+              const SizedBox(width: AppSpacing.spacing4),
+              // 좁은 화면에서는 탄단지 줄을 줄여서 한 줄 유지
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    children: [
+                      _Nutrient(label: '탄', grams: _entry.carbs),
+                      const SizedBox(width: AppSpacing.spacing6),
+                      _Nutrient(label: '단', grams: _entry.protein),
+                      const SizedBox(width: AppSpacing.spacing6),
+                      _Nutrient(label: '지', grams: _entry.fat),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.spacing4),
