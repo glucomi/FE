@@ -48,19 +48,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final GlobalKey _fabKey = GlobalKey();
 
-  /// 달력 전체보기에서 마지막으로 고른 날짜
-  DateTime? _selectedDate;
-
   Future<void> _openCalendar() async {
     final data = widget.data;
     final picked = await showMonthCalendarSheet(
       context,
       today: data.date,
-      selected: _selectedDate ?? data.date,
+      // 홈에서 보고 있는 날짜 (달력은 이 날짜가 있는 달부터 보여줌)
+      selected: data.date,
       scores: data.calendarScores,
     );
     if (picked == null || !mounted) return;
-    setState(() => _selectedDate = picked);
 
     if (widget.onSelectDate != null) {
       widget.onSelectDate!(picked);
