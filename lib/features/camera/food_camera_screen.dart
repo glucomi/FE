@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -161,6 +162,15 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
             return Stack(
               children: [
                 Positioned.fill(child: _buildBackground()),
+                // 촬영 영역 안에는 카메라/사진을 영역에 맞춰 보여줌
+                // (가로 웹캠도 과하게 확대되지 않도록 전체 화면이 아닌 영역 기준으로 자름)
+                Positioned.fromRect(
+                  rect: frame,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.radiusLg),
+                    child: _buildFrameContent(),
+                  ),
+                ),
                 Positioned.fill(child: _FrameMask(frame: frame)),
                 Positioned.fromRect(
                   rect: frame,
@@ -252,7 +262,15 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
     return Rect.fromLTWH((screen.width - size) / 2, top, size, size);
   }
 
+  /// 마스크 뒤 배경: 분석 중에는 사진을 흐리게 깔고, 촬영 중에는 검정
   Widget _buildBackground() {
+    if (_photo != null) {
+      return Image.memory(_photo!, fit: BoxFit.cover, gaplessPlayback: true);
+    }
+    return const ColoredBox(color: Colors.black);
+  }
+
+  Widget _buildFrameContent() {
     if (_photo != null) {
       return Image.memory(_photo!, fit: BoxFit.cover, gaplessPlayback: true);
     }
@@ -260,17 +278,25 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
     if (controller == null || !controller.value.isInitialized) {
       return const ColoredBox(color: Colors.black);
     }
-    // 세로 화면을 가득 채우도록 잘라서 보여줌
     final ratio = controller.value.aspectRatio;
-    return ClipRect(
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: 1000 / ratio,
-          height: 1000,
-          child: CameraPreview(controller),
-        ),
-      ),
+    // 폰: 센서가 가로라 세로 화면에서는 (1 / 비율)로 그려짐
+    // 웹: PC 웹캠 영상 비율 그대로 그림 (세로로 돌리면 과하게 확대됨)
+    final preview = kIsWeb
+        ? SizedBox(
+            width: 1000 * ratio,
+            height: 1000,
+            child: controller.buildPreview(),
+          )
+        : SizedBox(
+            width: 1000 / ratio,
+            height: 1000,
+            child: CameraPreview(controller),
+          );
+    // 촬영 영역을 채우도록 잘라서 표시
+    return FittedBox(
+      fit: BoxFit.cover,
+      clipBehavior: Clip.hardEdge,
+      child: preview,
     );
   }
 }
