@@ -1,11 +1,11 @@
 {
-    "name": "glucomi",
-    "short_name": "glucomi",
+    "name": "따당",
+    "short_name": "따당",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FEFEFE",
+    "theme_color": "#FEFEFE",
+    "description": "혈당 관리 앱 따당",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
