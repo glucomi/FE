@@ -5,6 +5,7 @@ export 'design_system/tokens/app_shadows.dart';
 export 'design_system/tokens/app_spacing.dart';
 export 'design_system/tokens/app_tokens.dart';
 export 'design_system/tokens/app_typography.dart';
+export 'features/camera/food_camera_screen.dart';
 export 'features/curation/curation_models.dart';
 export 'features/curation/curation_screen.dart';
 export 'features/curation/widgets/curation_step_header.dart';
