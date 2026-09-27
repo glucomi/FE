@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
+import 'package:glucomi/shared/app_scroll_behavior.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,7 @@ class HomePreviewApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const AppScrollBehavior(),
       home: HomeScreen(data: HomeData.sample()),
       builder: (context, child) {
         if (!kIsWeb) {

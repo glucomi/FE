@@ -26,6 +26,7 @@ export 'features/signup/signup_screen.dart';
 export 'features/signup/term_document_screen.dart';
 export 'features/signup/widgets/signup_all_consent_card.dart';
 export 'features/signup/widgets/signup_consent_row.dart';
+export 'shared/app_scroll_behavior.dart';
 export 'shared/widgets/app_button.dart';
 export 'shared/widgets/app_check_mark.dart';
 export 'shared/widgets/app_checkbox.dart';

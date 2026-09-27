@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
@@ -19,9 +21,14 @@ class CgmChart extends StatefulWidget {
     this.targetMin = 70,
     this.targetMax = 140,
     this.now,
+    this.onInteractionChanged,
   });
 
   final List<CgmPoint> points;
+
+  /// 그래프를 손가락으로 누르고 있는 동안 true
+  /// (홈 스크롤이 그래프 드래그/핀치를 가로채지 않도록 부모에서 스크롤을 잠금)
+  final ValueChanged<bool>? onInteractionChanged;
 
   /// 그래프 위에 아이콘으로 표시할 기록
   final List<DailyRecord> records;
@@ -60,6 +67,8 @@ class _CgmChartState extends State<CgmChart> {
 
   double _scaleStartVisibleHours = CgmChart.defaultVisibleHours;
   double _scaleFocalHour = 0;
+  bool _pinching = false;
+  double _pinchBaseScale = 1;
 
   @override
   void initState() {
@@ -131,27 +140,59 @@ class _CgmChartState extends State<CgmChart> {
     setState(() => _selectedIndex = closest);
   }
 
+  // 손가락 하나로 거의 움직이지 않고 뗐으면 탭으로 처리
+  Offset? _tapPosition;
+  double _tapTravel = 0;
+  bool _multiTouchSeen = false;
+
+  void _onScaleEnd(ScaleEndDetails details, Size size) {
+    // 손가락이 아직 남아 있으면 (핀치 중 한 손가락만 뗀 경우) 계속 이어지는 제스처
+    if (details.pointerCount > 0 || _activePointers > 1) return;
+    final position = _tapPosition;
+    if (position != null && !_multiTouchSeen && _tapTravel < kTouchSlop) {
+      _select(position, size);
+    }
+    _pinching = false;
+  }
+
   void _onScaleStart(ScaleStartDetails details, Size size) {
+    if (details.pointerCount >= 2) _multiTouchSeen = true;
+    _tapPosition ??= details.localFocalPoint;
     final plotWidth = size.width - CgmChart.plotLeft;
     if (plotWidth <= 0) return;
     _scaleStartVisibleHours = _visibleHours;
+    _pinching = details.pointerCount >= 2;
+    _pinchBaseScale = 1;
     final ratio = ((details.localFocalPoint.dx - CgmChart.plotLeft) / plotWidth)
         .clamp(0.0, 1.0);
     _scaleFocalHour = _offsetHours + ratio * _visibleHours;
   }
 
   void _onScaleUpdate(ScaleUpdateDetails details, Size size) {
+    if (details.pointerCount >= 2) _multiTouchSeen = true;
+    _tapTravel += details.focalPointDelta.distance;
     if (widget.points.length < 2) return;
     final plotWidth = size.width - CgmChart.plotLeft;
     if (plotWidth <= 0) return;
 
     // 두 손가락 → 확대/축소 (핀치 중심 시각을 고정)
     if (details.pointerCount >= 2) {
+      if (!_pinching) {
+        // 한 손가락으로 시작했다가 두 번째 손가락이 닿은 순간을 기준으로 삼음
+        _pinching = true;
+        _pinchBaseScale = details.scale;
+        _scaleStartVisibleHours = _visibleHours;
+        final ratio =
+            ((details.localFocalPoint.dx - CgmChart.plotLeft) / plotWidth)
+                .clamp(0.0, 1.0);
+        _scaleFocalHour = _offsetHours + ratio * _visibleHours;
+      }
       final maxHours = math.min(
         CgmChart.maxVisibleHours,
         math.max(CgmChart.minVisibleHours, _totalHours),
       );
-      final visible = (_scaleStartVisibleHours / details.scale)
+      final scale = details.scale / _pinchBaseScale;
+      final visible = (_scaleStartVisibleHours / scale)
           .clamp(CgmChart.minVisibleHours, maxHours)
           .toDouble();
       final ratio =
@@ -169,11 +210,33 @@ class _CgmChartState extends State<CgmChart> {
     }
 
     // 한 손가락 → 좌우 이동
+    _pinching = false;
     final deltaHours = -(details.focalPointDelta.dx / plotWidth) * _visibleHours;
     setState(() {
       _offsetHours = (_offsetHours + deltaHours).clamp(0.0, _maxOffset);
       _selectedIndex = null;
     });
+  }
+
+  int _activePointers = 0;
+
+  void _pointerChanged(int delta) {
+    final wasActive = _activePointers > 0;
+    _activePointers = math.max(0, _activePointers + delta);
+    // 한 번이라도 두 손가락이 닿았으면 탭으로 보지 않음
+    if (_activePointers >= 2) _multiTouchSeen = true;
+    final isActive = _activePointers > 0;
+    if (!isActive) {
+      // Listener가 인식기보다 먼저 호출되므로, 인식기가 onEnd를 처리한 뒤 초기화
+      scheduleMicrotask(() {
+        if (_activePointers > 0) return;
+        _tapPosition = null;
+        _tapTravel = 0;
+        _multiTouchSeen = false;
+        _pinching = false;
+      });
+    }
+    if (wasActive != isActive) widget.onInteractionChanged?.call(isActive);
   }
 
   double _valueAt(DateTime time) {
@@ -203,58 +266,76 @@ class _CgmChartState extends State<CgmChart> {
           final geometry = _geometry(size);
           final selected = _selectedIndex;
 
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (details) => _select(details.localPosition, size),
-            onScaleStart: (details) => _onScaleStart(details, size),
-            onScaleUpdate: (details) => _onScaleUpdate(details, size),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CustomPaint(
-                  size: size,
-                  painter: _CgmChartPainter(
-                    points: widget.points,
-                    geometry: geometry,
-                    selectedIndex: selected,
-                    targetMin: widget.targetMin.toDouble(),
-                    targetMax: widget.targetMax.toDouble(),
+          return Listener(
+            onPointerDown: (_) => _pointerChanged(1),
+            onPointerUp: (_) => _pointerChanged(-1),
+            onPointerCancel: (_) => _pointerChanged(-1),
+            child: RawGestureDetector(
+              behavior: HitTestBehavior.opaque,
+              gestures: {
+                _ChartScaleGestureRecognizer:
+                    GestureRecognizerFactoryWithHandlers<
+                      _ChartScaleGestureRecognizer
+                    >(
+                      () => _ChartScaleGestureRecognizer(),
+                      (recognizer) {
+                        recognizer.onStart = (details) =>
+                            _onScaleStart(details, size);
+                        recognizer.onUpdate = (details) =>
+                            _onScaleUpdate(details, size);
+                        recognizer.onEnd = (details) =>
+                            _onScaleEnd(details, size);
+                      },
+                    ),
+              },
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CustomPaint(
+                    size: size,
+                    painter: _CgmChartPainter(
+                      points: widget.points,
+                      geometry: geometry,
+                      selectedIndex: selected,
+                      targetMin: widget.targetMin.toDouble(),
+                      targetMax: widget.targetMax.toDouble(),
+                    ),
                   ),
-                ),
-                if (widget.points.isEmpty)
-                  const Positioned(
-                    left: CgmChart.plotLeft,
-                    right: 0,
-                    top: 56,
-                    child: _EmptyMessage(),
-                  ),
-                if (widget.points.isNotEmpty)
-                  for (final record in widget.records)
-                    if (geometry.contains(record.time) &&
-                        !record.time.isAfter(widget.points.last.time))
-                      Positioned(
-                        left: geometry.xForTime(record.time) - 12,
-                        top: _ChartGeometry.yForValue(_valueAt(record.time)) -
-                            12,
-                        child: IgnorePointer(child: _RecordMarker(record.type)),
+                  if (widget.points.isEmpty)
+                    const Positioned(
+                      left: CgmChart.plotLeft,
+                      right: 0,
+                      top: 56,
+                      child: _EmptyMessage(),
+                    ),
+                  if (widget.points.isNotEmpty)
+                    for (final record in widget.records)
+                      if (geometry.contains(record.time) &&
+                          !record.time.isAfter(widget.points.last.time))
+                        Positioned(
+                          left: geometry.xForTime(record.time) - 12,
+                          top: _ChartGeometry.yForValue(_valueAt(record.time)) -
+                              12,
+                          child: IgnorePointer(child: _RecordMarker(record.type)),
+                        ),
+                  if (selected != null &&
+                      geometry.contains(widget.points[selected].time))
+                    _Tooltip(
+                      point: widget.points[selected],
+                      previous: selected > 0 ? widget.points[selected - 1] : null,
+                      color: _colorFor(
+                        widget.points[selected].value,
+                        widget.targetMin.toDouble(),
+                        widget.targetMax.toDouble(),
                       ),
-                if (selected != null &&
-                    geometry.contains(widget.points[selected].time))
-                  _Tooltip(
-                    point: widget.points[selected],
-                    previous: selected > 0 ? widget.points[selected - 1] : null,
-                    color: _colorFor(
-                      widget.points[selected].value,
-                      widget.targetMin.toDouble(),
-                      widget.targetMax.toDouble(),
+                      anchor: Offset(
+                        geometry.xForTime(widget.points[selected].time),
+                        _ChartGeometry.yForValue(widget.points[selected].value),
+                      ),
+                      chartWidth: size.width,
                     ),
-                    anchor: Offset(
-                      geometry.xForTime(widget.points[selected].time),
-                      _ChartGeometry.yForValue(widget.points[selected].value),
-                    ),
-                    chartWidth: size.width,
-                  ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -692,5 +773,15 @@ class _Tooltip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// 그래프 위에서 시작한 제스처는 바로 그래프가 가져감
+/// (홈 화면 세로 스크롤이 핀치/드래그를 가로채지 않도록)
+class _ChartScaleGestureRecognizer extends ScaleGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
   }
 }

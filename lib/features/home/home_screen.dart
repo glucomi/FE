@@ -29,6 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
   static const double _calendarTop = 171;
   static const double _contentTop = 278;
 
+  // 그래프를 만지는 동안 페이지 스크롤 잠금
+  bool _chartActive = false;
+
   void _notReady(String feature) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -51,6 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Stack(
         children: [
           SingleChildScrollView(
+            physics: _chartActive
+                ? const NeverScrollableScrollPhysics()
+                : null,
             padding: const EdgeInsets.only(bottom: 72),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,6 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         targetMin: data.rangeMin,
                         targetMax: data.rangeMax,
                         now: data.date,
+                        onInteractionChanged: (active) {
+                          if (_chartActive != active) {
+                            setState(() => _chartActive = active);
+                          }
+                        },
                       ),
                       const SizedBox(height: AppSpacing.spacing6),
                       GlucoseStats(data: data),
