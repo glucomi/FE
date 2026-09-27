@@ -22,6 +22,7 @@ flutter:
   assets:
     - assets/curation/
     - assets/home/
+    - assets/meal/
     - assets/signup/
     - assets/terms/
   fonts:

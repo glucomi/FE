@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:glucomi/features/curation/curation_screen.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
+import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/signup/signup_screen.dart';
 
 /// 회원가입 약관 동의 → 큐레이션 → 홈으로 이어지는 흐름
@@ -27,6 +28,8 @@ class SignupFlow extends StatelessWidget {
                         targetMin: result.targetMin,
                         targetMax: result.targetMax,
                       ),
+                      // 음식 검색 API 연동 전까지 예시 음식 데이터 사용
+                      mealRepository: SampleMealFoodRepository.empty(),
                     ),
                     transitionDuration: Duration.zero,
                     reverseTransitionDuration: Duration.zero,

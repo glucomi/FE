@@ -100,6 +100,22 @@ class HomeData {
     };
   }
 
+  /// 기록을 덧붙인 새 데이터 (시간순 정렬)
+  HomeData withAddedRecords(List<DailyRecord> added) {
+    if (added.isEmpty) return this;
+    return HomeData(
+      date: date,
+      sensorConnected: sensorConnected,
+      sensorDay: sensorDay,
+      points: points,
+      records: [...records, ...added]
+        ..sort((a, b) => a.time.compareTo(b.time)),
+      targetMin: targetMin,
+      targetMax: targetMax,
+      dailyScores: dailyScores,
+    );
+  }
+
   bool get hasGlucose => points.isNotEmpty;
 
   /// 그래프 색 기준 (목표 범위가 없으면 70-140)
