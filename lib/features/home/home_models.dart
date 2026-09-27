@@ -161,7 +161,11 @@ class HomeData {
   }
 
   /// Figma 예시와 비슷한 미리보기용 데이터
-  factory HomeData.sample({DateTime? today}) {
+  factory HomeData.sample({
+    DateTime? today,
+    int targetMin = 70,
+    int targetMax = 140,
+  }) {
     final now = today ?? DateTime.now();
     final day = DateTime(now.year, now.month, now.day);
     DateTime at(int h, int m) => day.add(Duration(hours: h, minutes: m));
@@ -187,8 +191,8 @@ class HomeData {
       date: day,
       sensorConnected: true,
       sensorDay: 1,
-      targetMin: 70,
-      targetMax: 140,
+      targetMin: targetMin,
+      targetMax: targetMax,
       points: points,
       dailyScores: {
         for (final MapEntry(key: ago, value: v) in pastScores.entries)
