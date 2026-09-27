@@ -156,14 +156,7 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
         backgroundColor: Colors.black,
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            // Figma: 좌우 20 여백, 상태바 아래 124.5 에서 시작하는 촬영 영역
-            final frame = Rect.fromLTWH(
-              20,
-              padding.top + 124.5,
-              width - 40,
-              width - 40 + 1.5,
-            );
+            final frame = _frameRect(constraints.biggest, padding);
 
             return Stack(
               children: [
@@ -236,6 +229,27 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
         ),
       ),
     );
+  }
+
+  /// 아래 안내 문구 + 버튼 영역 높이 (문구 44 + 간격 24 + 버튼 줄 120 + 아래 여백 64)
+  static const double _bottomBlockHeight = 44 + 24 + 120 + 64;
+
+  /// 촬영 영역 (Figma: 좌우 20 여백, 상태바 아래 124.5 에서 시작하는 정사각형)
+  /// 화면이 낮으면 (사파리 주소창 등) 아래 안내 문구와 겹치지 않게 줄이고 위로 올림
+  Rect _frameRect(Size screen, EdgeInsets padding) {
+    const gap = AppSpacing.spacing6;
+    final minTop = padding.top + 72; // 닫기 버튼 아래
+    final bottomLimit =
+        screen.height - padding.bottom - _bottomBlockHeight - gap;
+
+    final size = (screen.width - 40)
+        .clamp(0.0, (bottomLimit - minTop).clamp(0.0, double.infinity))
+        .toDouble();
+    var top = padding.top + 124.5;
+    if (top + size > bottomLimit) {
+      top = (bottomLimit - size).clamp(minTop, double.infinity).toDouble();
+    }
+    return Rect.fromLTWH((screen.width - size) / 2, top, size, size);
   }
 
   Widget _buildBackground() {
