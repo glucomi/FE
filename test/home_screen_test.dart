@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
+import 'package:glucomi/features/home/widgets/calendar_day.dart';
 
 void main() {
   Future<void> mount(WidgetTester tester, HomeData data) async {
@@ -33,12 +34,60 @@ void main() {
     expect(data.carbsGram, 20);
   });
 
-  testWidgets('기록 추가 버튼을 누르면 준비 중 안내', (tester) async {
+  testWidgets('+ 버튼을 누르면 기록 메뉴가 열리고, 고르면 준비 중 안내', (tester) async {
     await mount(tester, HomeData.empty());
 
     await tester.tap(find.byKey(const ValueKey('home-add-record')));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('기록 추가 준비 중입니다.'), findsOneWidget);
+    for (final label in ['식단', '체중', '혈당', '인슐린', '복약', '운동', '메모']) {
+      expect(find.text(label), findsOneWidget);
+    }
+
+    await tester.tap(find.text('식단'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('식단'), findsNothing);
+    expect(find.text('식단 기록 준비 중입니다.'), findsOneWidget);
+  });
+
+  testWidgets('기록 메뉴는 닫기 버튼으로 닫힘', (tester) async {
+    await mount(tester, HomeData.empty());
+
+    await tester.tap(find.byKey(const ValueKey('home-add-record')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-add-record-close')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('인슐린'), findsNothing);
+  });
+
+  testWidgets('전체보기를 누르면 월 달력이 열리고 날짜를 고르면 닫힘', (tester) async {
+    final data = HomeData.sample(today: DateTime(2026, 9, 24));
+    await mount(tester, data);
+
+    await tester.tap(find.text('전체보기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2026.09'), findsOneWidget);
+    expect(find.text('일'), findsOneWidget);
+
+    // 미래 날짜는 선택되지 않음
+    await tester.tap(find.byKey(const ValueKey('month-calendar-9-28')));
+    await tester.pumpAndSettle();
+    expect(find.text('2026.09'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('month-calendar-9-10')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2026.09'), findsNothing);
+    expect(find.text('9월 10일 기록 보기 준비 중입니다.'), findsOneWidget);
+  });
+
+  test('달력 점수 구간', () {
+    expect(CalendarMarkState.fromScore(null), CalendarMarkState.none);
+    expect(CalendarMarkState.fromScore(84), CalendarMarkState.good);
+    expect(CalendarMarkState.fromScore(56), CalendarMarkState.warning);
+    expect(CalendarMarkState.fromScore(45), CalendarMarkState.danger);
   });
 }

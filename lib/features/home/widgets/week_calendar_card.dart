@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/features/home/widgets/calendar_day.dart';
 
 /// 홈 주간 달력 카드 (오늘 포함 최근 7일)
 class WeekCalendarCard extends StatelessWidget {
@@ -12,7 +13,7 @@ class WeekCalendarCard extends StatelessWidget {
 
   final DateTime today;
 
-  /// 날짜별 혈당 점수 (없으면 '-')
+  /// 날짜별 혈당 점수 (자정 기준 날짜 키, 없으면 '-')
   final Map<DateTime, int> scores;
   final VoidCallback? onTapAll;
 
@@ -63,53 +64,15 @@ class WeekCalendarCard extends StatelessWidget {
             children: [
               for (final date in days)
                 Expanded(
-                  child: _Day(
+                  child: CalendarDayCell(
                     label: date == day ? 'TODAY' : '${date.day}',
+                    labelStyle: AppTypography.bodySmR.copyWith(
+                      color: AppColors.neutralsEmphasis,
+                    ),
                     score: scores[date],
                   ),
                 ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Day extends StatelessWidget {
-  const _Day({required this.label, this.score});
-
-  final String label;
-  final int? score;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: AppTypography.bodySmR.copyWith(
-              color: AppColors.neutralsEmphasis,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.spacing1),
-          Container(
-            width: 24,
-            height: 24,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.neutralsSubtle,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              score?.toString() ?? '-',
-              style: AppTypography.labelNav.copyWith(
-                color: AppColors.foregroundQuaternary,
-              ),
-            ),
           ),
         ],
       ),
