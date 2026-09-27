@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:glucomi/features/signup/signup_screen.dart';
+import 'package:glucomi/features/signup/signup_flow.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +16,7 @@ class SignupPreviewApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const SignupScreen(),
+      home: const SignupFlow(),
       builder: (context, child) {
         if (!kIsWeb) {
           return child ?? const SizedBox.shrink();

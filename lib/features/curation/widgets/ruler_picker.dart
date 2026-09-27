@@ -1,7 +1,6 @@
 import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 
 /// 눈금자 형태로 값을 고르는 피커 (키: 세로, 몸무게: 가로)

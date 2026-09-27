@@ -12,6 +12,7 @@ export 'features/curation/widgets/diabetes_type_option.dart';
 export 'features/curation/widgets/guideline_alert.dart';
 export 'features/curation/widgets/range_wheel_picker.dart';
 export 'features/curation/widgets/ruler_picker.dart';
+export 'features/signup/signup_flow.dart';
 export 'features/signup/signup_screen.dart';
 export 'features/signup/term_document_screen.dart';
 export 'features/signup/widgets/signup_all_consent_card.dart';
