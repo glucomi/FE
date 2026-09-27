@@ -225,7 +225,15 @@ class DailyRecordCard extends StatelessWidget {
                                     ),
                                     const SizedBox(width: AppSpacing.spacing1),
                                   ],
-                                  Text(record.details[i], style: metaStyle),
+                                  // 좁으면 말줄임
+                                  Flexible(
+                                    child: Text(
+                                      record.details[i],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: metaStyle,
+                                    ),
+                                  ),
                                 ],
                               ],
                             ),

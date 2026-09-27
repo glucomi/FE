@@ -8,8 +8,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    // 테스트 환경에는 카메라 플러그인이 없어서 사용할 수 없는 상태가 됨
-    await tester.pumpWidget(const MaterialApp(home: FoodCameraScreen()));
+    // 카메라가 하나도 없는 상태
+    await tester.pumpWidget(
+      MaterialApp(home: FoodCameraScreen(loadCameras: () async => [])),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('정확한 분석을 위해'), findsOneWidget);
@@ -29,7 +31,9 @@ void main() {
         home: Builder(
           builder: (context) => TextButton(
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const FoodCameraScreen()),
+              MaterialPageRoute<void>(
+                builder: (_) => FoodCameraScreen(loadCameras: () async => []),
+              ),
             ),
             child: const Text('open'),
           ),

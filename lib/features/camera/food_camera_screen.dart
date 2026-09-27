@@ -10,10 +10,17 @@ import 'package:image_picker/image_picker.dart';
 
 /// 음식 사진 촬영 (진입 · 실시간 촬영 → 분석중)
 class FoodCameraScreen extends StatefulWidget {
-  const FoodCameraScreen({super.key, this.onAnalyze});
+  const FoodCameraScreen({
+    super.key,
+    this.onAnalyze,
+    this.loadCameras = availableCameras,
+  });
 
   /// 찍거나 고른 사진을 분석 (서버 연동 전에는 없어서 분석중 화면에 머무름)
   final Future<void> Function(XFile photo)? onAnalyze;
+
+  /// 사용할 수 있는 카메라 목록 (테스트에서 바꿔 끼울 수 있음)
+  final Future<List<CameraDescription>> Function() loadCameras;
 
   @override
   State<FoodCameraScreen> createState() => _FoodCameraScreenState();
@@ -59,7 +66,7 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
 
   Future<void> _initCamera() async {
     try {
-      final cameras = await availableCameras();
+      final cameras = await widget.loadCameras();
       if (cameras.isEmpty) {
         _setCameraError('카메라를 찾을 수 없어요');
         return;

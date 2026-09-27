@@ -35,7 +35,8 @@ class GlucoseSummary extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
+              Flexible(
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _SensorChip(
@@ -45,7 +46,11 @@ class GlucoseSummary extends StatelessWidget {
                   const SizedBox(height: AppSpacing.spacing1),
                   Padding(
                     padding: const EdgeInsets.only(left: AppSpacing.spacing1),
-                    child: Row(
+                    // 글자가 커지거나 화면이 좁으면 줄여서 한 줄 유지
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(min?.toString() ?? '-', style: bigStyle),
@@ -63,11 +68,13 @@ class GlucoseSummary extends StatelessWidget {
                           ),
                         ),
                       ],
+                      ),
                     ),
                   ),
                 ],
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: AppSpacing.spacing2),
               connected
                   ? _SmallButton(
                       label: '새로고침',
