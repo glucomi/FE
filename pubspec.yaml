@@ -21,6 +21,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/curation/
+    - assets/home/
     - assets/signup/
     - assets/terms/
   fonts:
