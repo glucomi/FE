@@ -29,7 +29,7 @@ class SignupFlow extends StatelessWidget {
                         targetMax: result.targetMax,
                       ),
                       // 음식 검색 API 연동 전까지 예시 음식 데이터 사용
-                      mealRepository: SampleMealFoodRepository.empty(),
+                      mealRepository: SampleMealFoodRepository(),
                     ),
                     transitionDuration: Duration.zero,
                     reverseTransitionDuration: Duration.zero,
