@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glucomi/features/curation/curation_models.dart';
 import 'package:glucomi/features/curation/curation_screen.dart';
+import 'package:glucomi/features/signup/signup_flow.dart';
 import 'package:glucomi/shared/widgets/app_icons.dart';
 
 void main() {
@@ -76,5 +77,21 @@ void main() {
     await tester.tap(find.byType(AppChevronLeft));
     await tester.pumpAndSettle();
     expect(find.text('STEP 01'), findsOneWidget);
+  });
+
+  testWidgets('회원가입에서 전체 동의 후 다음을 누르면 큐레이션으로 이동', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const MaterialApp(home: SignupFlow()));
+
+    await tester.tap(find.byKey(const ValueKey('consent-all')));
+    await tester.pump();
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CurationScreen), findsOneWidget);
+    expect(find.text('STEP 01'), findsOneWidget);
+    expect(find.byType(AppChevronLeft), findsNothing);
   });
 }

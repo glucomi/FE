@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:glucomi/features/signup/signup_screen.dart';
+import 'package:glucomi/features/signup/signup_flow.dart';
 
 void main() {
   runApp(const GlucomiApp());
@@ -16,7 +16,7 @@ class GlucomiApp extends StatelessWidget {
         fontFamily: 'Pretendard',
         scaffoldBackgroundColor: const Color(0xFFFEFEFE),
       ),
-      home: const SignupScreen(),
+      home: const SignupFlow(),
     );
   }
 }
