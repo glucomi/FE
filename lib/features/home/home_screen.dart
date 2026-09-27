@@ -2,22 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/home/home_models.dart';
+import 'package:glucomi/features/home/widgets/add_record_menu.dart';
 import 'package:glucomi/features/home/widgets/cgm_chart.dart';
 import 'package:glucomi/features/home/widgets/daily_record_list.dart';
 import 'package:glucomi/features/home/widgets/glucose_stats.dart';
 import 'package:glucomi/features/home/widgets/glucose_summary.dart';
 import 'package:glucomi/features/home/widgets/home_dock_bar.dart';
 import 'package:glucomi/features/home/widgets/home_hero.dart';
+import 'package:glucomi/features/home/widgets/month_calendar_sheet.dart';
 import 'package:glucomi/features/home/widgets/week_calendar_card.dart';
 
 /// MO-HOME-010 홈
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.data, this.onRefresh});
+  const HomeScreen({
+    super.key,
+    required this.data,
+    this.onRefresh,
+    this.onAddRecord,
+    this.onSelectDate,
+  });
 
   final HomeData data;
 
   /// 새로고침 버튼 (센서 데이터 다시 불러오기)
   final Future<void> Function()? onRefresh;
+
+  /// + 메뉴에서 기록 종류를 골랐을 때
+  final ValueChanged<AddRecordType>? onAddRecord;
+
+  /// 달력 전체보기에서 날짜를 골랐을 때
+  final ValueChanged<DateTime>? onSelectDate;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -31,6 +45,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 그래프를 만지는 동안 페이지 스크롤 잠금
   bool _chartActive = false;
+
+  final GlobalKey _fabKey = GlobalKey();
+
+  Future<void> _openCalendar() async {
+    final data = widget.data;
+    final picked = await showMonthCalendarSheet(
+      context,
+      today: data.date,
+      // 홈에서 보고 있는 날짜 (달력은 이 날짜가 있는 달부터 보여줌)
+      selected: data.date,
+      scores: data.calendarScores,
+    );
+    if (picked == null || !mounted) return;
+
+    if (widget.onSelectDate != null) {
+      widget.onSelectDate!(picked);
+    } else if (!DateUtils.isSameDay(picked, data.date)) {
+      _notReady('${picked.month}월 ${picked.day}일 기록 보기');
+    }
+  }
+
+  Future<void> _openAddMenu() async {
+    final fabBox = _fabKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlayBox =
+        Navigator.of(context).overlay?.context.findRenderObject() as RenderBox?;
+    if (fabBox == null || overlayBox == null) return;
+    final topLeft = fabBox.localToGlobal(Offset.zero, ancestor: overlayBox);
+
+    final type = await showAddRecordMenu(
+      context,
+      fabRect: topLeft & fabBox.size,
+    );
+    if (type == null || !mounted) return;
+
+    if (widget.onAddRecord != null) {
+      widget.onAddRecord!(type);
+    } else {
+      _notReady('${type.label} 기록');
+    }
+  }
 
   void _notReady(String feature) {
     ScaffoldMessenger.of(context)
@@ -94,7 +148,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         top: topInset + _calendarTop,
                         child: WeekCalendarCard(
                           today: data.date,
-                          onTapAll: () => _notReady('달력 전체보기'),
+                          scores: data.calendarScores,
+                          onTapAll: _openCalendar,
                         ),
                       ),
                     ],
@@ -147,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Positioned(
             right: 22,
             bottom: 9,
-            child: _AddRecordButton(onTap: () => _notReady('기록 추가')),
+            child: _AddRecordButton(key: _fabKey, onTap: _openAddMenu),
           ),
         ],
       ),
@@ -156,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _AddRecordButton extends StatelessWidget {
-  const _AddRecordButton({required this.onTap});
+  const _AddRecordButton({super.key, required this.onTap});
 
   final VoidCallback onTap;
 

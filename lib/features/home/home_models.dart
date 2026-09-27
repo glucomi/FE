@@ -67,6 +67,7 @@ class HomeData {
     this.records = const [],
     this.targetMin,
     this.targetMax,
+    this.dailyScores = const {},
   });
 
   /// 큐레이션 직후처럼 센서 연결 전 상태
@@ -87,6 +88,17 @@ class HomeData {
   final List<DailyRecord> records;
   final int? targetMin;
   final int? targetMax;
+
+  /// 지난 날짜별 혈당 점수 (자정 기준 날짜 키) — 달력 표시용
+  final Map<DateTime, int> dailyScores;
+
+  /// 달력에 표시할 점수 (오늘은 현재 데이터로 계산한 점수)
+  Map<DateTime, int> get calendarScores {
+    return {
+      ...dailyScores,
+      DateTime(date.year, date.month, date.day): ?score,
+    };
+  }
 
   bool get hasGlucose => points.isNotEmpty;
 
@@ -149,6 +161,12 @@ class HomeData {
       for (final (h, m, v) in samples) CgmPoint(time: at(h, m), value: v),
     ];
 
+    // 며칠 전 → 점수 (비어 있는 날은 기록 없음)
+    const pastScores = {
+      1: 72, 2: 68, 3: 56, 4: 45, 5: 70, 6: 74, 8: 54, 9: 90, 10: 50,
+      11: 72, 12: 68, 15: 70, 16: 56, 17: 74, 18: 72, 20: 48, 22: 66,
+    };
+
     return HomeData(
       date: day,
       sensorConnected: true,
@@ -156,6 +174,10 @@ class HomeData {
       targetMin: 70,
       targetMax: 140,
       points: points,
+      dailyScores: {
+        for (final MapEntry(key: ago, value: v) in pastScores.entries)
+          DateTime(day.year, day.month, day.day - ago): v,
+      },
       records: [
         DailyRecord(
           time: at(11, 4),
