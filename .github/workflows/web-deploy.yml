@@ -1,0 +1,61 @@
+# 웹 앱 배포 (Firebase Hosting)
+# - main 에 머지되면 실제 주소에 배포
+# - PR 을 올리면 미리보기 주소를 만들어 PR 댓글로 알려줌 (7일 유지)
+# 필요한 설정 (저장소 Settings > Secrets and variables > Actions)
+# - Secret   FIREBASE_SERVICE_ACCOUNT : Firebase 서비스 계정 키 JSON 전체
+# - Variable FIREBASE_PROJECT_ID      : Firebase 프로젝트 ID
+name: 웹 배포
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: web-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # 다른 저장소에서 온 PR 은 비밀 키가 없으므로 건너뜀
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build web --release
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          # main 은 실제 주소, PR 은 미리보기 주소
+          channelId: ${{ github.event_name != 'pull_request' && 'live' || '' }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter test
