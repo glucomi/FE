@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/features/camera/food_camera_screen.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/widgets/add_record_menu.dart';
 import 'package:glucomi/features/home/widgets/cgm_chart.dart';
@@ -125,6 +126,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ..showSnackBar(const SnackBar(content: Text('식단을 기록했어요.')));
   }
 
+  void _openCamera() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => const FoodCameraScreen(),
+      ),
+    );
+  }
+
   void _notReady(String feature) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -141,7 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: HomeDockBar(
         current: HomeTab.home,
         onSelect: (tab) {
-          if (tab != HomeTab.home) _notReady(tab.label);
+          switch (tab) {
+            case HomeTab.home:
+              break;
+            case HomeTab.camera:
+              _openCamera();
+            case HomeTab.farm || HomeTab.myPage:
+              _notReady(tab.label);
+          }
         },
       ),
       body: Stack(
