@@ -25,6 +25,7 @@ class HomeScreen extends StatefulWidget {
     this.onAddRecord,
     this.onSelectDate,
     this.mealRepository,
+    this.onConnectSensor,
   });
 
   final HomeData data;
@@ -40,6 +41,10 @@ class HomeScreen extends StatefulWidget {
 
   /// 음식 검색 데이터 (있으면 + 메뉴의 식단에서 음식 기록하기 화면을 엶)
   final MealFoodRepository? mealRepository;
+
+  /// 연결하기를 눌렀을 때 센서를 연결하고 새 데이터를 돌려줌
+  /// (없으면 예시 데이터로 연결된 화면을 보여줌)
+  final Future<HomeData?> Function()? onConnectSensor;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -59,7 +64,34 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 이 화면에서 새로 기록한 항목 (서버 연동 전까지 화면에만 반영)
   final List<DailyRecord> _addedRecords = [];
 
-  HomeData get _data => widget.data.withAddedRecords(_addedRecords);
+  /// 연결하기로 센서를 연결한 뒤의 데이터 (서버 연동 전까지 예시 데이터)
+  HomeData? _connectedData;
+
+  HomeData get _data =>
+      (_connectedData ?? widget.data).withAddedRecords(_addedRecords);
+
+  Future<void> _connectSensor() async {
+    if (widget.onConnectSensor != null) {
+      final data = await widget.onConnectSensor!();
+      if (data == null || !mounted) return;
+      setState(() => _connectedData = data);
+      return;
+    }
+    // 센서 연동 전: 목표 범위는 그대로 두고 예시 측정값으로 연결된 화면을 보여줌
+    final current = widget.data;
+    setState(() {
+      _connectedData = HomeData.sample(
+        today: current.date,
+        targetMin: current.targetMin ?? 70,
+        targetMax: current.targetMax ?? 140,
+      );
+    });
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('센서가 연결됐어요. (예시 데이터)')),
+      );
+  }
 
   Future<void> _openCalendar() async {
     final data = _data;
@@ -225,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             _notReady('새로고침');
                           }
                         },
-                        onConnect: () => _notReady('센서 연결'),
+                        onConnect: _connectSensor,
                       ),
                       const SizedBox(height: AppSpacing.spacing6),
                       CgmChart(

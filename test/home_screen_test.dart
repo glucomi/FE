@@ -74,6 +74,17 @@ void main() {
     expect(find.text('음식 기록하기'), findsOneWidget);
   });
 
+  testWidgets('연결하기를 누르면 연결된 홈(예시 데이터)으로 바뀜', (tester) async {
+    await mount(tester, HomeData.empty(targetMin: 70, targetMax: 180));
+
+    await tester.tap(find.text('연결하기'));
+    await tester.pump();
+
+    expect(find.text('연결하기'), findsNothing);
+    expect(find.text('1일차'), findsOneWidget);
+    expect(find.text('70-180mg/dl'), findsOneWidget);
+  });
+
   testWidgets('기록 메뉴는 닫기 버튼으로 닫힘', (tester) async {
     await mount(tester, HomeData.empty());
 
