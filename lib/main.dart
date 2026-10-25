@@ -19,7 +19,7 @@ class GlucomiApp extends StatelessWidget {
         fontFamily: 'Pretendard',
         scaffoldBackgroundColor: const Color(0xFFFEFEFE),
       ),
-      home: const SignupFlow(),
+      home: const AppStart(),
       builder: (context, child) => PhoneFrame(child: child),
     );
   }

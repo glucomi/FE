@@ -10,6 +10,12 @@ abstract class MealFoodRepository {
 
   Future<bool> isFavorite(MealFood food);
   Future<void> setFavorite(MealFood food, {required bool favorite});
+
+  /// 음식을 눌렀을 때 영양 성분까지 채운 상세 (목록에는 kcal 만 있을 수 있음)
+  Future<MealFood> detail(MealFood food);
+
+  /// 기록하기 — 담은 음식들을 한 번에 저장
+  Future<void> saveRecord(MealRecord record);
 }
 
 /// 미리보기 / 테스트용 메모리 저장소
@@ -20,7 +26,9 @@ class SampleMealFoodRepository implements MealFoodRepository {
     List<String>? recentIds,
   }) : _foods = foods ?? sampleFoods,
        _favoriteIds = favoriteIds ?? {'black-rice', 'user-multigrain', 'user-tuna'},
-       _recentIds = recentIds ?? ['gimbap', 'rolled-egg', 'tuna-kimchi-stew'];
+       _recentIds = [
+         ...(recentIds ?? ['gimbap', 'rolled-egg', 'tuna-kimchi-stew']),
+       ];
 
   /// 기록이 하나도 없는 상태
   factory SampleMealFoodRepository.empty() => SampleMealFoodRepository(
@@ -64,6 +72,19 @@ class SampleMealFoodRepository implements MealFoodRepository {
       _favoriteIds.add(food.id);
     } else {
       _favoriteIds.remove(food.id);
+    }
+  }
+
+  @override
+  Future<MealFood> detail(MealFood food) async => food;
+
+  /// 예시 저장소는 화면에만 반영 (최근 먹은 음식 맨 앞으로)
+  @override
+  Future<void> saveRecord(MealRecord record) async {
+    for (final entry in record.entries.reversed) {
+      _recentIds
+        ..remove(entry.food.id)
+        ..insert(0, entry.food.id);
     }
   }
 

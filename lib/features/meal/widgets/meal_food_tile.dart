@@ -106,7 +106,7 @@ class MealFoodSummary extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '${formatMealNumber(food.servingGram)}g',
+                        '${formatMealNumber(food.servingGram)}${food.servingUnit}',
                         style: amountStyle,
                       ),
                       const SizedBox(width: AppSpacing.spacing05),

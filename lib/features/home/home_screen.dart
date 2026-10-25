@@ -29,6 +29,7 @@ class HomeScreen extends StatefulWidget {
     this.mealRepository,
     this.weightRepository,
     this.onConnectSensor,
+    this.onRecordsChanged,
   });
 
   final HomeData data;
@@ -51,6 +52,10 @@ class HomeScreen extends StatefulWidget {
   /// 연결하기를 눌렀을 때 센서를 연결하고 새 데이터를 돌려줌
   /// (없으면 예시 데이터로 연결된 화면을 보여줌)
   final Future<HomeData?> Function()? onConnectSensor;
+
+  /// 서버에 기록을 저장한 뒤 홈 데이터를 다시 불러옴
+  /// (없으면 새 기록을 화면에만 덧붙임)
+  final Future<void> Function()? onRecordsChanged;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -155,6 +160,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (record == null || record.entries.isEmpty || !mounted) return;
 
+    final messenger = ScaffoldMessenger.of(context);
+    if (widget.onRecordsChanged != null) {
+      // 음식 기록하기 화면에서 이미 서버에 저장됨 → 홈을 새로 불러옴
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('식단을 기록했어요.')));
+      await widget.onRecordsChanged!();
+      return;
+    }
+
     final carbs = record.carbs.round();
     setState(() {
       _addedRecords.add(
@@ -167,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     });
-    ScaffoldMessenger.of(context)
+    messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text('식단을 기록했어요.')));
   }

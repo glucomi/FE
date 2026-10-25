@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/meal/meal_models.dart';
@@ -48,6 +49,7 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
   List<List<MealFood>> _tabFoods = const [[], [], []];
   List<MealFood> _results = const [];
   final List<MealEntry> _cart = [];
+  bool _saving = false;
 
   bool get _searching => _query.isNotEmpty;
 
@@ -66,12 +68,16 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
 
   Future<void> _loadTabs() async {
     final repo = widget.repository;
-    final lists = await Future.wait([
-      repo.favorites(),
-      repo.recent(),
-      repo.userFoods(),
-    ]);
-    if (mounted) setState(() => _tabFoods = lists);
+    try {
+      final lists = await Future.wait([
+        repo.favorites(),
+        repo.recent(),
+        repo.userFoods(),
+      ]);
+      if (mounted) setState(() => _tabFoods = lists);
+    } catch (e) {
+      _showError(e, '음식 목록을 불러오지 못했어요.');
+    }
   }
 
   Future<void> _onQueryChanged(String text) async {
@@ -82,7 +88,13 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
     });
     if (query.isEmpty) return;
 
-    final results = await widget.repository.search(query);
+    final List<MealFood> results;
+    try {
+      results = await widget.repository.search(query);
+    } catch (e) {
+      if (query == _query) _showError(e, '검색하지 못했어요.');
+      return;
+    }
     // 입력이 바뀌는 사이에 늦게 온 결과는 버림
     if (mounted && query == _query) setState(() => _results = results);
   }
@@ -102,15 +114,32 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
   Future<void> _openFood(MealFood food) async {
     _searchFocus.unfocus();
     final repo = widget.repository;
-    final favorite = await repo.isFavorite(food);
+    final MealFood detailed;
+    final bool favorite;
+    try {
+      // 목록에는 열량만 있을 수 있어서 영양 성분을 채운 상세로 엶
+      detailed = await repo.detail(food);
+      favorite = await repo.isFavorite(detailed);
+    } catch (e) {
+      _showError(e, '음식 정보를 불러오지 못했어요.');
+      return;
+    }
     if (!mounted) return;
 
+    final current = _cartEntryFor(food);
     final entry = await showMealAmountSheet(
       context,
-      initial: _cartEntryFor(food) ?? MealEntry.initial(food),
+      initial: current == null
+          ? MealEntry.initial(detailed)
+          : MealEntry(food: detailed, amount: current.amount, unit: current.unit),
       favorite: favorite,
       onFavoriteChanged: (value) async {
-        await repo.setFavorite(food, favorite: value);
+        try {
+          await repo.setFavorite(detailed, favorite: value);
+        } catch (e) {
+          _showError(e, '즐겨찾기를 바꾸지 못했어요.');
+          return;
+        }
         await _loadTabs();
       },
       onNutritionInfo: () => _notReady('영양정보'),
@@ -127,10 +156,29 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
     });
   }
 
-  void _submit() {
-    Navigator.of(context).pop(
-      MealRecord(time: widget.clock(), entries: List.unmodifiable(_cart)),
+  Future<void> _submit() async {
+    if (_saving) return;
+    final record = MealRecord(
+      time: widget.clock(),
+      entries: List.unmodifiable(_cart),
     );
+    setState(() => _saving = true);
+    try {
+      await widget.repository.saveRecord(record);
+    } catch (e) {
+      if (mounted) setState(() => _saving = false);
+      _showError(e, '식단을 기록하지 못했어요. 다시 시도해 주세요.');
+      return;
+    }
+    if (mounted) Navigator.of(context).pop(record);
+  }
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    final message = error is ApiException ? error.message : fallback;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _registerFood() {

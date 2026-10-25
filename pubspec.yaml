@@ -11,8 +11,10 @@ dependencies:
     sdk: flutter
   camera: ^0.12.1
   flutter_svg: ^2.3.0
+  http: ^1.5.0
   image_picker: ^1.2.3
   pdfrx: ^2.6.5
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
