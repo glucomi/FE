@@ -23,6 +23,7 @@ class MealFood {
     this.carbs = 0,
     this.protein = 0,
     this.fat = 0,
+    this.servingUnit = 'g',
   });
 
   final String id;
@@ -35,8 +36,11 @@ class MealFood {
   /// 브랜드명 (예: 동원)
   final String? brand;
 
-  /// 기준량 (g)
+  /// 기준량 (단위는 [servingUnit])
   final double servingGram;
+
+  /// 기준량 단위 (g / ml)
+  final String servingUnit;
   final double kcal;
   final double carbs;
   final double protein;

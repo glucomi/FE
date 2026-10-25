@@ -60,6 +60,32 @@ class DailyRecord {
   final double? weightKg;
 }
 
+/// 서버(GET /api/home)가 계산해 준 요약 지표
+/// (있으면 화면에서 직접 계산하지 않고 이 값을 씀)
+@immutable
+class HomeSummary {
+  const HomeSummary({
+    this.score,
+    this.scoreStatus,
+    this.minGlucose,
+    this.maxGlucose,
+    this.averageGlucose,
+    this.spikeCount,
+    this.carbsGram,
+  });
+
+  /// 혈당 점수 (확정/잠정일 때만 값이 있음)
+  final int? score;
+
+  /// FINAL / PROVISIONAL / MEASURING / UNAVAILABLE
+  final String? scoreStatus;
+  final int? minGlucose;
+  final int? maxGlucose;
+  final int? averageGlucose;
+  final int? spikeCount;
+  final double? carbsGram;
+}
+
 /// 홈 화면에 필요한 데이터
 @immutable
 class HomeData {
@@ -72,6 +98,7 @@ class HomeData {
     this.targetMin,
     this.targetMax,
     this.dailyScores = const {},
+    this.summary,
   });
 
   /// 큐레이션 직후처럼 센서 연결 전 상태
@@ -95,6 +122,9 @@ class HomeData {
 
   /// 지난 날짜별 혈당 점수 (자정 기준 날짜 키) — 달력 표시용
   final Map<DateTime, int> dailyScores;
+
+  /// 서버 요약 지표 (예시 데이터 / 서버 연동 전에는 null)
+  final HomeSummary? summary;
 
   /// 달력에 표시할 점수 (오늘은 현재 데이터로 계산한 점수)
   Map<DateTime, int> get calendarScores {
@@ -120,6 +150,7 @@ class HomeData {
       targetMin: targetMin,
       targetMax: targetMax,
       dailyScores: dailyScores,
+      summary: summary,
     );
   }
 
@@ -129,18 +160,26 @@ class HomeData {
   int get rangeMin => targetMin ?? 70;
   int get rangeMax => targetMax ?? 140;
 
-  double? get minGlucose =>
-      hasGlucose ? points.map((p) => p.value).reduce(math.min) : null;
+  double? get minGlucose {
+    if (summary != null) return summary!.minGlucose?.toDouble();
+    return hasGlucose ? points.map((p) => p.value).reduce(math.min) : null;
+  }
 
-  double? get maxGlucose =>
-      hasGlucose ? points.map((p) => p.value).reduce(math.max) : null;
+  double? get maxGlucose {
+    if (summary != null) return summary!.maxGlucose?.toDouble();
+    return hasGlucose ? points.map((p) => p.value).reduce(math.max) : null;
+  }
 
-  double? get averageGlucose => hasGlucose
-      ? points.map((p) => p.value).reduce((a, b) => a + b) / points.length
-      : null;
+  double? get averageGlucose {
+    if (summary != null) return summary!.averageGlucose?.toDouble();
+    return hasGlucose
+        ? points.map((p) => p.value).reduce((a, b) => a + b) / points.length
+        : null;
+  }
 
-  /// 목표 범위 안에 있던 비율(%) — 혈당 점수로 사용 (추후 서버 계산값으로 교체)
+  /// 혈당 점수 — 서버 값이 있으면 그대로, 없으면 목표 범위 안 비율(%)로 계산
   int? get score {
+    if (summary != null) return summary!.score;
     if (!hasGlucose) return null;
     final inRange = points
         .where((p) => p.value >= rangeMin && p.value <= rangeMax)
@@ -150,6 +189,7 @@ class HomeData {
 
   /// 목표 상한을 넘어선 횟수
   int? get spikeCount {
+    if (summary != null) return summary!.spikeCount;
     if (!hasGlucose) return null;
     var count = 0;
     for (var i = 1; i < points.length; i++) {
@@ -162,6 +202,8 @@ class HomeData {
 
   /// 음식 기록 탄수화물 합계
   double? get carbsGram {
+    final serverCarbs = summary?.carbsGram;
+    if (serverCarbs != null && serverCarbs > 0) return serverCarbs;
     final foods = records.where((r) => r.carbsGram != null);
     if (foods.isEmpty) return null;
     return foods.map((r) => r.carbsGram!).reduce((a, b) => a + b);
