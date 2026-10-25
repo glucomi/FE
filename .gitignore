@@ -9,3 +9,7 @@ build/
 
 # Firebase
 .firebase/
+
+# Vercel 빌드용 Flutter SDK
+.flutter-sdk/
+.vercel/
