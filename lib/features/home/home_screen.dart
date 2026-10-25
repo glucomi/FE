@@ -15,6 +15,8 @@ import 'package:glucomi/features/home/widgets/week_calendar_card.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/meal/meal_models.dart';
 import 'package:glucomi/features/meal/meal_record_screen.dart';
+import 'package:glucomi/features/weight/weight_models.dart';
+import 'package:glucomi/features/weight/weight_record_screen.dart';
 
 /// MO-HOME-010 홈
 class HomeScreen extends StatefulWidget {
@@ -25,6 +27,7 @@ class HomeScreen extends StatefulWidget {
     this.onAddRecord,
     this.onSelectDate,
     this.mealRepository,
+    this.weightRepository,
     this.onConnectSensor,
   });
 
@@ -41,6 +44,9 @@ class HomeScreen extends StatefulWidget {
 
   /// 음식 검색 데이터 (있으면 + 메뉴의 식단에서 음식 기록하기 화면을 엶)
   final MealFoodRepository? mealRepository;
+
+  /// 체중 저장소 (있으면 + 메뉴의 체중과 오늘의 기록 체중 카드에서 체중 화면을 엶)
+  final WeightRepository? weightRepository;
 
   /// 연결하기를 눌렀을 때 센서를 연결하고 새 데이터를 돌려줌
   /// (없으면 예시 데이터로 연결된 화면을 보여줌)
@@ -64,11 +70,17 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 이 화면에서 새로 기록한 항목 (서버 연동 전까지 화면에만 반영)
   final List<DailyRecord> _addedRecords = [];
 
+  /// 이 화면에서 지우거나 새 값으로 바꾼 기존 항목
+  final Set<DailyRecord> _removedRecords = {};
+
   /// 연결하기로 센서를 연결한 뒤의 데이터 (서버 연동 전까지 예시 데이터)
   HomeData? _connectedData;
 
   HomeData get _data =>
-      (_connectedData ?? widget.data).withAddedRecords(_addedRecords);
+      (_connectedData ?? widget.data).withAddedRecords(
+        _addedRecords,
+        removed: _removedRecords,
+      );
 
   Future<void> _connectSensor() async {
     if (widget.onConnectSensor != null) {
@@ -128,6 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
       widget.onAddRecord!(type);
     } else if (type == AddRecordType.food && widget.mealRepository != null) {
       await _openMealRecord(widget.mealRepository!);
+    } else if (type == AddRecordType.weight && widget.weightRepository != null) {
+      await _openWeightRecord(widget.weightRepository!);
     } else {
       _notReady('${type.label} 기록');
     }
@@ -156,6 +170,82 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text('식단을 기록했어요.')));
+  }
+
+  /// 오늘의 기록 중 가장 마지막 체중
+  DailyRecord? get _latestWeight {
+    DailyRecord? latest;
+    for (final r in _data.records) {
+      if (r.weightKg == null) continue;
+      if (latest == null || !r.time.isBefore(latest.time)) latest = r;
+    }
+    return latest;
+  }
+
+  /// MO-WEIGHT-010. [existing] 이 있으면 (b) 등록후 상태로 엶
+  Future<void> _openWeightRecord(
+    WeightRepository repository, {
+    DailyRecord? existing,
+  }) async {
+    final result = await Navigator.of(context).push<WeightRecordResult>(
+      MaterialPageRoute(
+        builder: (_) => WeightRecordScreen(
+          repository: repository,
+          today: _data.date,
+          record: existing == null
+              ? null
+              : WeightRecord(date: existing.time, kg: existing.weightKg!),
+          previousKg: existing == null ? _latestWeight?.weightKg : null,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    final data = _data;
+    setState(() {
+      if (existing != null) _forget(existing);
+      final saved = result.record;
+      // 홈에서 보고 있는 날짜의 기록만 오늘의 기록·그래프에 반영
+      if (saved == null || !DateUtils.isSameDay(saved.date, data.date)) return;
+      // 같은 날짜 기록은 최신값으로 갱신 → 그날 기존 체중 항목은 정리
+      for (final r in data.records) {
+        if (r.weightKg != null && DateUtils.isSameDay(r.time, saved.date)) {
+          _forget(r);
+        }
+      }
+      final now = DateTime.now();
+      final time =
+          existing != null && DateUtils.isSameDay(existing.time, saved.date)
+          ? existing.time
+          : DateTime(
+              saved.date.year,
+              saved.date.month,
+              saved.date.day,
+              now.hour,
+              now.minute,
+            );
+      _addedRecords.add(
+        DailyRecord(
+          time: time,
+          type: DailyRecordType.weight,
+          title: '${saved.kg.toStringAsFixed(1)} kg',
+          weightKg: saved.kg,
+        ),
+      );
+    });
+  }
+
+  void _forget(DailyRecord record) {
+    if (!_addedRecords.remove(record)) _removedRecords.add(record);
+  }
+
+  void _onTapRecord(DailyRecord record) {
+    final repository = widget.weightRepository;
+    if (record.weightKg != null && repository != null) {
+      _openWeightRecord(repository, existing: record);
+    } else {
+      _notReady('기록 상세');
+    }
   }
 
   void _openCamera() {
@@ -279,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       DailyRecordList(
                         records: data.records,
                         onTapDailyCard: () => _notReady('일일 카드'),
-                        onTapRecord: (_) => _notReady('기록 상세'),
+                        onTapRecord: _onTapRecord,
                       ),
                     ],
                   ),

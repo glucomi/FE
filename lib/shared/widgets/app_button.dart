@@ -67,3 +67,96 @@ class AppButton extends StatelessWidget {
     );
   }
 }
+
+/// Figma Button: Secondary (흰 배경 + border/default). 예: 삭제하기, 취소
+class AppOutlineButton extends StatelessWidget {
+  const AppOutlineButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.height = AppSpacing.controlHeightLg,
+    this.horizontalPadding = AppSpacing.spacing5,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final double height;
+  final double horizontalPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: height,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.neutralsBackground,
+          foregroundColor: AppColors.foregroundPrimary,
+          disabledForegroundColor: AppColors.foregroundQuaternary,
+          side: const BorderSide(
+            color: AppColors.borderDefault,
+            width: AppTokens.borderWidthDefault,
+          ),
+          elevation: 0,
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.radiusSm),
+          ),
+          textStyle: AppTypography.btnMd.copyWith(
+            leadingDistribution: TextLeadingDistribution.even,
+          ),
+          overlayColor: Colors.transparent,
+          splashFactory: NoSplash.splashFactory,
+          animationDuration: Duration.zero,
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+/// Figma Button: Danger (interactive/danger). 예: 삭제 팝업의 '삭제'
+class AppDangerButton extends StatelessWidget {
+  const AppDangerButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.height = AppSpacing.controlHeightLg,
+    this.horizontalPadding = AppSpacing.spacing5,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final double height;
+  final double horizontalPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: height,
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.interactiveDangerDefault,
+          disabledBackgroundColor: AppColors.interactiveDangerDisabled,
+          foregroundColor: AppColors.foregroundOnAccent,
+          disabledForegroundColor: AppColors.foregroundOnAccent,
+          elevation: 0,
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.radiusSm),
+          ),
+          textStyle: AppTypography.btnMd.copyWith(
+            leadingDistribution: TextLeadingDistribution.even,
+          ),
+          overlayColor: Colors.transparent,
+          splashFactory: NoSplash.splashFactory,
+          animationDuration: Duration.zero,
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+}

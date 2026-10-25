@@ -40,6 +40,7 @@ class DailyRecord {
     this.details = const [],
     this.carbsGram,
     this.imageAsset,
+    this.weightKg,
   });
 
   final DateTime time;
@@ -54,6 +55,9 @@ class DailyRecord {
 
   /// 음식 사진 (없으면 음식 아이콘 표시)
   final String? imageAsset;
+
+  /// 체중 기록의 kg (체중 화면 (b) 등록후 진입에 사용)
+  final double? weightKg;
 }
 
 /// 홈 화면에 필요한 데이터
@@ -101,14 +105,17 @@ class HomeData {
   }
 
   /// 기록을 덧붙인 새 데이터 (시간순 정렬)
-  HomeData withAddedRecords(List<DailyRecord> added) {
-    if (added.isEmpty) return this;
+  HomeData withAddedRecords(
+    List<DailyRecord> added, {
+    Set<DailyRecord> removed = const {},
+  }) {
+    if (added.isEmpty && removed.isEmpty) return this;
     return HomeData(
       date: date,
       sensorConnected: sensorConnected,
       sensorDay: sensorDay,
       points: points,
-      records: [...records, ...added]
+      records: [...records.where((r) => !removed.contains(r)), ...added]
         ..sort((a, b) => a.time.compareTo(b.time)),
       targetMin: targetMin,
       targetMax: targetMax,
@@ -210,6 +217,7 @@ class HomeData {
           time: at(11, 40),
           type: DailyRecordType.weight,
           title: '47.7 kg',
+          weightKg: 47.7,
         ),
         DailyRecord(
           time: at(11, 43),

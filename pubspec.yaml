@@ -28,6 +28,7 @@ flutter:
     - assets/meal/
     - assets/signup/
     - assets/terms/
+    - assets/weight/
   fonts:
     - family: Pretendard
       fonts:
