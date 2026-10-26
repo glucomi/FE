@@ -24,8 +24,9 @@ class CurationScreen extends StatefulWidget {
 
 class _CurationScreenState extends State<CurationScreen> {
   static const _totalSteps = 4;
-  static const _minTargetValues = [40, 50, 60, 70, 80, 90, 100, 110, 120, 130];
-  static final _maxTargetValues = [for (var v = 120; v <= 250; v += 10) v];
+  // MO-CURATION-010 (d): 스냅 단위 1 mg/dL
+  static final _minTargetValues = [for (var v = 40; v <= 130; v++) v];
+  static final _maxTargetValues = [for (var v = 120; v <= 250; v++) v];
 
   int _step = 1;
   DiabetesType? _type;
