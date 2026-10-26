@@ -11,11 +11,11 @@ enum CalendarMarkState {
   warning,
   danger;
 
-  /// 점수 구간 (추후 서버 기준으로 교체)
+  /// 점수 구간 (MO-HOME-010: 85 이상 good / 70 이상 normal / 70 미만 bad)
   static CalendarMarkState fromScore(int? score) {
     if (score == null) return none;
-    if (score >= 65) return good;
-    if (score >= 50) return warning;
+    if (score >= 85) return good;
+    if (score >= 70) return warning;
     return danger;
   }
 

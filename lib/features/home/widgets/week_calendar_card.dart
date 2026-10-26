@@ -40,7 +40,7 @@ class WeekCalendarCard extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  '${day.year}년 ${day.month}월 ${day.day}일 (${_weekdays[day.weekday - 1]})',
+                  '${day.year}년 ${day.month}월 ${day.day}일(${_weekdays[day.weekday - 1]})',
                   style: AppTypography.bodyMdM.copyWith(
                     color: const Color(0xFF2F2F2F),
                   ),

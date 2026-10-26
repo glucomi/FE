@@ -99,8 +99,10 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
     if (mounted && query == _query) setState(() => _results = results);
   }
 
+  // MO-MEAL-020: 초기화 후 '즐겨찾기' 탭으로 복귀
   void _clearSearch() {
     _searchController.clear();
+    setState(() => _tab = 0);
     _onQueryChanged('');
   }
 
@@ -238,7 +240,11 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
                   MealSearchBar(
                     controller: _searchController,
                     focusNode: _searchFocus,
-                    onChanged: _onQueryChanged,
+                    // MO-MEAL-010: 엔터(검색) 시 검색 수행, 입력을 다 지우면 탭으로 복귀
+                    onChanged: (text) {
+                      if (text.trim().isEmpty) _clearSearch();
+                    },
+                    onSubmitted: _onQueryChanged,
                     onClear: _clearSearch,
                   ),
                   if (!_searching) ...[

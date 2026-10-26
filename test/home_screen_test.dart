@@ -120,8 +120,9 @@ void main() {
 
   test('달력 점수 구간', () {
     expect(CalendarMarkState.fromScore(null), CalendarMarkState.none);
-    expect(CalendarMarkState.fromScore(84), CalendarMarkState.good);
-    expect(CalendarMarkState.fromScore(56), CalendarMarkState.warning);
-    expect(CalendarMarkState.fromScore(45), CalendarMarkState.danger);
+    expect(CalendarMarkState.fromScore(85), CalendarMarkState.good);
+    expect(CalendarMarkState.fromScore(84), CalendarMarkState.warning);
+    expect(CalendarMarkState.fromScore(70), CalendarMarkState.warning);
+    expect(CalendarMarkState.fromScore(69), CalendarMarkState.danger);
   });
 }

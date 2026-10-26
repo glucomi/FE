@@ -43,7 +43,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('키를 입력해주세요'), findsOneWidget);
-    expect(find.text('165'), findsOneWidget);
+    expect(find.text('160'), findsOneWidget);
     await tester.tap(find.byType(FilledButton));
     await tester.pumpAndSettle();
 
@@ -59,7 +59,7 @@ void main() {
 
     expect(result, isNotNull);
     expect(result!.diabetesType, DiabetesType.gestational);
-    expect(result!.heightCm, 165);
+    expect(result!.heightCm, 160);
     expect(result!.weightKg, 60.0);
     expect(result!.targetMin, 60);
     expect(result!.targetMax, 140);
