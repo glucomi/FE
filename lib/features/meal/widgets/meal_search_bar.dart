@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 
@@ -9,12 +10,14 @@ class MealSearchBar extends StatelessWidget {
     required this.controller,
     this.focusNode,
     this.onChanged,
+    this.onSubmitted,
     this.onClear,
   });
 
   final TextEditingController controller;
   final FocusNode? focusNode;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final VoidCallback? onClear;
 
   @override
@@ -44,7 +47,10 @@ class MealSearchBar extends StatelessWidget {
                   controller: controller,
                   focusNode: focusNode,
                   onChanged: onChanged,
+                  onSubmitted: onSubmitted,
                   textInputAction: TextInputAction.search,
+                  // MO-MEAL-010: 검색어 최대 50자
+                  inputFormatters: [LengthLimitingTextInputFormatter(50)],
                   style: textStyle,
                   cursorColor: AppColors.accentsBrand,
                   decoration: InputDecoration(

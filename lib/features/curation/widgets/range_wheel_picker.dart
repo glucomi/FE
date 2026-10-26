@@ -133,11 +133,10 @@ class _WheelColumnState extends State<_WheelColumn> {
     final index = widget.values.indexOf(widget.value);
     if (index >= 0 && index != _selected) {
       _selected = index;
-      _controller.animateToItem(
-        index,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
+      // 반대쪽 휠에 밀려 바뀐 경우: 애니메이션 중간값으로 콜백이 연쇄되지 않게 바로 이동
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controller.hasClients) _controller.jumpToItem(index);
+      });
     }
   }
 

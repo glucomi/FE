@@ -24,13 +24,20 @@ class CurationScreen extends StatefulWidget {
 
 class _CurationScreenState extends State<CurationScreen> {
   static const _totalSteps = 4;
-  // MO-CURATION-010 (d): 스냅 단위 1 mg/dL
-  static final _minTargetValues = [for (var v = 40; v <= 130; v++) v];
-  static final _maxTargetValues = [for (var v = 120; v <= 250; v++) v];
+  // MO-CURATION-010 (d): 하한 50~ / 상한 ~230, 스냅 1 mg/dL, 최소 간격 30
+  static const _targetLowest = 50;
+  static const _targetHighest = 230;
+  static const _targetGap = 30;
+  static final _minTargetValues = [
+    for (var v = _targetLowest; v <= _targetHighest - _targetGap; v++) v,
+  ];
+  static final _maxTargetValues = [
+    for (var v = _targetLowest + _targetGap; v <= _targetHighest; v++) v,
+  ];
 
   int _step = 1;
   DiabetesType? _type;
-  int _heightCm = 165;
+  int _heightCm = 160;
   double _weightKg = 60;
   int _targetMin = 70;
   int _targetMax = 180;
@@ -39,7 +46,7 @@ class _CurationScreenState extends State<CurationScreen> {
 
   bool get _canProceed => switch (_step) {
     1 => _type != null,
-    4 => _targetMin < _targetMax,
+    4 => _targetMax - _targetMin >= _targetGap,
     _ => true,
   };
 
@@ -196,7 +203,7 @@ class _CurationScreenState extends State<CurationScreen> {
                         key: const ValueKey('height-ruler'),
                         axis: Axis.vertical,
                         min: 100,
-                        max: 220,
+                        max: 250,
                         step: 1,
                         value: _heightCm.toDouble(),
                         onChanged: (v) => setState(() => _heightCm = v.round()),
@@ -280,8 +287,8 @@ class _CurationScreenState extends State<CurationScreen> {
                         child: RulerPicker(
                           key: const ValueKey('weight-ruler'),
                           axis: Axis.horizontal,
-                          min: 30,
-                          max: 150,
+                          min: 20,
+                          max: 200,
                           step: 0.1,
                           value: _weightKg,
                           onChanged: (v) => setState(
@@ -344,13 +351,16 @@ class _CurationScreenState extends State<CurationScreen> {
               maxValues: _maxTargetValues,
               minValue: _targetMin,
               maxValue: _targetMax,
+              // 한쪽이 최소 간격을 넘어서면 반대쪽을 밀어냄
               onMinChanged: (v) => setState(() {
                 _targetTouched = true;
                 _targetMin = v;
+                if (_targetMax - v < _targetGap) _targetMax = v + _targetGap;
               }),
               onMaxChanged: (v) => setState(() {
                 _targetTouched = true;
                 _targetMax = v;
+                if (v - _targetMin < _targetGap) _targetMin = v - _targetGap;
               }),
             ),
           ),

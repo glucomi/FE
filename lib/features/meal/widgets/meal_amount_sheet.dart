@@ -60,6 +60,9 @@ class _MealAmountSheetState extends State<MealAmountSheet> {
 
   double get _step => _entry.unit == MealUnit.gram ? 10 : 0.5;
 
+  /// COM-POP-01: 수량 최솟값 1 (1 미만 입력 불가)
+  static const double _minAmount = 1;
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -67,7 +70,8 @@ class _MealAmountSheetState extends State<MealAmountSheet> {
   }
 
   void _setAmount(double amount, {bool updateField = true}) {
-    final value = amount < 0 ? 0.0 : amount;
+    // 버튼·단위 변경은 1 미만으로 내려가지 않게, 직접 입력 중에는 그대로 두고 추가 버튼만 막음
+    final value = updateField && amount < _minAmount ? _minAmount : (amount < 0 ? 0.0 : amount);
     setState(() => _entry = _entry.copyWith(amount: value));
     if (updateField) _amountController.text = formatMealNumber(value);
   }
@@ -82,7 +86,7 @@ class _MealAmountSheetState extends State<MealAmountSheet> {
         serving == 0 ? 1.0 : ((_entry.amount / serving) * 2).round() / 2,
     };
     setState(() => _entry = _entry.copyWith(unit: unit));
-    _setAmount(amount < _step ? _step : amount);
+    _setAmount(amount < _minAmount ? _minAmount : amount);
   }
 
   void _toggleFavorite() {
@@ -92,7 +96,7 @@ class _MealAmountSheetState extends State<MealAmountSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final canAdd = _entry.amount > 0;
+    final canAdd = _entry.amount >= _minAmount;
 
     return AppBottomSheetFrame(
       bottomPadding: 15,

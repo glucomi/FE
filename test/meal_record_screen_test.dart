@@ -49,6 +49,7 @@ void main() {
     await mount(tester, SampleMealFoodRepository());
 
     await tester.enterText(find.byKey(const ValueKey('meal-search-field')), '밥');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
 
     expect(find.text('흑미밥'), findsOneWidget);
