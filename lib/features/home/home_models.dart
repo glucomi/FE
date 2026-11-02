@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -16,6 +17,7 @@ class CgmPoint {
 enum DailyRecordType {
   food('음식', 'assets/home/memo_food.svg', AppColors.statusWarning),
   weight('체중', 'assets/home/memo_weight.svg', AppColors.green500),
+  glucose('혈당', 'assets/home/menu_glucose.svg', AppColors.statusError),
   insulin('인슐린', 'assets/home/memo_insulin.svg', AppColors.blue400),
   medicine('복약', 'assets/home/memo_medicine.svg', AppColors.purple400),
   memo('메모', 'assets/home/memo_note.svg', AppColors.gray500),
@@ -41,6 +43,7 @@ class DailyRecord {
     this.carbsGram,
     this.imageAsset,
     this.weightKg,
+    this.glucose,
   });
 
   final DateTime time;
@@ -58,6 +61,9 @@ class DailyRecord {
 
   /// 체중 기록의 kg (체중 화면 (b) 등록후 진입에 사용)
   final double? weightKg;
+
+  /// 혈당 직접 기록 (혈당 화면 (c) 등록후 진입에 사용)
+  final GlucoseRecord? glucose;
 }
 
 /// 서버(GET /api/home)가 계산해 준 요약 지표

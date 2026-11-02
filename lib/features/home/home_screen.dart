@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/camera/food_camera_screen.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_screen.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/widgets/add_record_menu.dart';
 import 'package:glucomi/features/home/widgets/cgm_chart.dart';
@@ -28,6 +30,7 @@ class HomeScreen extends StatefulWidget {
     this.onSelectDate,
     this.mealRepository,
     this.weightRepository,
+    this.glucoseRepository,
     this.onConnectSensor,
     this.onRecordsChanged,
   });
@@ -48,6 +51,9 @@ class HomeScreen extends StatefulWidget {
 
   /// 체중 저장소 (있으면 + 메뉴의 체중과 오늘의 기록 체중 카드에서 체중 화면을 엶)
   final WeightRepository? weightRepository;
+
+  /// 혈당 직접 기록 저장소 (있으면 + 메뉴의 혈당과 오늘의 기록 혈당 카드에서 혈당 화면을 엶)
+  final GlucoseRecordRepository? glucoseRepository;
 
   /// 연결하기를 눌렀을 때 센서를 연결하고 새 데이터를 돌려줌
   /// (없으면 예시 데이터로 연결된 화면을 보여줌)
@@ -147,6 +153,9 @@ class _HomeScreenState extends State<HomeScreen> {
       await _openMealRecord(widget.mealRepository!);
     } else if (type == AddRecordType.weight && widget.weightRepository != null) {
       await _openWeightRecord(widget.weightRepository!);
+    } else if (type == AddRecordType.glucose &&
+        widget.glucoseRepository != null) {
+      await _openGlucoseRecord(widget.glucoseRepository!);
     } else {
       _notReady('${type.label} 기록');
     }
@@ -250,14 +259,50 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  /// MO-GLUCOSER-010. [existing] 이 있으면 (c) 등록후 상태로 엶
+  Future<void> _openGlucoseRecord(
+    GlucoseRecordRepository repository, {
+    DailyRecord? existing,
+  }) async {
+    final result = await Navigator.of(context).push<GlucoseRecordResult>(
+      MaterialPageRoute(
+        builder: (_) => GlucoseRecordScreen(
+          repository: repository,
+          today: _data.date,
+          record: existing?.glucose,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    final data = _data;
+    setState(() {
+      if (existing != null) _forget(existing);
+      final saved = result.record;
+      // 홈에서 보고 있는 날짜의 기록만 오늘의 기록·그래프에 반영
+      if (saved == null || !DateUtils.isSameDay(saved.time, data.date)) return;
+      _addedRecords.add(
+        DailyRecord(
+          time: saved.time,
+          type: DailyRecordType.glucose,
+          title: '${saved.mgDl} mg/dL',
+          glucose: saved,
+        ),
+      );
+    });
+  }
+
   void _forget(DailyRecord record) {
     if (!_addedRecords.remove(record)) _removedRecords.add(record);
   }
 
   void _onTapRecord(DailyRecord record) {
-    final repository = widget.weightRepository;
-    if (record.weightKg != null && repository != null) {
-      _openWeightRecord(repository, existing: record);
+    final weightRepository = widget.weightRepository;
+    final glucoseRepository = widget.glucoseRepository;
+    if (record.weightKg != null && weightRepository != null) {
+      _openWeightRecord(weightRepository, existing: record);
+    } else if (record.glucose != null && glucoseRepository != null) {
+      _openGlucoseRecord(glucoseRepository, existing: record);
     } else {
       _notReady('기록 상세');
     }
