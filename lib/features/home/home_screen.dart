@@ -6,6 +6,8 @@ import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/drug/drug_record_screen.dart';
 import 'package:glucomi/features/exercise/exercise_models.dart';
 import 'package:glucomi/features/exercise/exercise_record_screen.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_screen.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/widgets/add_record_menu.dart';
 import 'package:glucomi/features/home/widgets/cgm_chart.dart';
@@ -16,9 +18,13 @@ import 'package:glucomi/features/home/widgets/home_dock_bar.dart';
 import 'package:glucomi/features/home/widgets/home_hero.dart';
 import 'package:glucomi/features/home/widgets/month_calendar_sheet.dart';
 import 'package:glucomi/features/home/widgets/week_calendar_card.dart';
+import 'package:glucomi/features/insulin/insulin_models.dart';
+import 'package:glucomi/features/insulin/insulin_record_screen.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/meal/meal_models.dart';
 import 'package:glucomi/features/meal/meal_record_screen.dart';
+import 'package:glucomi/features/memo/memo_models.dart';
+import 'package:glucomi/features/memo/memo_record_screen.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
 import 'package:glucomi/features/weight/weight_record_screen.dart';
 
@@ -34,6 +40,9 @@ class HomeScreen extends StatefulWidget {
     this.weightRepository,
     this.drugRepository,
     this.exerciseRepository,
+    this.insulinRepository,
+    this.glucoseRepository,
+    this.memoRepository,
     this.onConnectSensor,
     this.onRecordsChanged,
   });
@@ -60,6 +69,15 @@ class HomeScreen extends StatefulWidget {
 
   /// 운동 저장소 (있으면 + 메뉴의 운동과 이 화면에서 기록한 운동 카드에서 운동 화면을 엶)
   final ExerciseRepository? exerciseRepository;
+
+  /// 인슐린 저장소 (있으면 + 메뉴의 인슐린과 오늘의 기록 인슐린 카드에서 인슐린 화면을 엶)
+  final InsulinRepository? insulinRepository;
+
+  /// 혈당 직접 기록 저장소 (있으면 + 메뉴의 혈당과 오늘의 기록 혈당 카드에서 혈당 화면을 엶)
+  final GlucoseRecordRepository? glucoseRepository;
+
+  /// 메모 저장소 (있으면 + 메뉴의 메모와 오늘의 기록 메모 카드에서 메모 화면을 엶)
+  final MemoRepository? memoRepository;
 
   /// 연결하기를 눌렀을 때 센서를 연결하고 새 데이터를 돌려줌
   /// (없으면 예시 데이터로 연결된 화면을 보여줌)
@@ -167,6 +185,14 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (type == AddRecordType.exercise &&
         widget.exerciseRepository != null) {
       await _openExerciseRecord(widget.exerciseRepository!);
+    } else if (type == AddRecordType.insulin &&
+        widget.insulinRepository != null) {
+      await _openInsulinRecord(widget.insulinRepository!);
+    } else if (type == AddRecordType.glucose &&
+        widget.glucoseRepository != null) {
+      await _openGlucoseRecord(widget.glucoseRepository!);
+    } else if (type == AddRecordType.memo && widget.memoRepository != null) {
+      await _openMemoRecord(widget.memoRepository!);
     } else {
       _notReady('${type.label} 기록');
     }
@@ -303,6 +329,98 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  /// MO-INSULIN-010. [existing] 이 있으면 (f) 등록후 상태로 엶
+  Future<void> _openInsulinRecord(
+    InsulinRepository repository, {
+    DailyRecord? existing,
+  }) async {
+    final result = await Navigator.of(context).push<InsulinRecordResult>(
+      MaterialPageRoute(
+        builder: (_) => InsulinRecordScreen(
+          repository: repository,
+          record: existing?.insulinRecord,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    final data = _data;
+    setState(() {
+      if (existing != null) _forget(existing);
+      final saved = result.record;
+      // 홈에서 보고 있는 날짜의 기록만 오늘의 기록·그래프 마커에 반영
+      if (saved == null || !DateUtils.isSameDay(saved.time, data.date)) return;
+      _addedRecords.add(DailyRecord.insulin(saved));
+    });
+  }
+
+  /// MO-GLUCOSER-010. [existing] 이 있으면 (c) 등록후 상태로 엶
+  Future<void> _openGlucoseRecord(
+    GlucoseRecordRepository repository, {
+    DailyRecord? existing,
+  }) async {
+    final result = await Navigator.of(context).push<GlucoseRecordResult>(
+      MaterialPageRoute(
+        builder: (_) => GlucoseRecordScreen(
+          repository: repository,
+          today: _data.date,
+          record: existing?.glucose,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    final data = _data;
+    setState(() {
+      if (existing != null) _forget(existing);
+      final saved = result.record;
+      // 홈에서 보고 있는 날짜의 기록만 오늘의 기록·그래프에 반영
+      if (saved == null || !DateUtils.isSameDay(saved.time, data.date)) return;
+      _addedRecords.add(
+        DailyRecord(
+          time: saved.time,
+          type: DailyRecordType.glucose,
+          title: '${saved.mgDl} mg/dL',
+          glucose: saved,
+        ),
+      );
+    });
+  }
+
+  /// MO-MEMO-010. [existing] 이 있으면 (c) 등록후 상태로 엶
+  Future<void> _openMemoRecord(
+    MemoRepository repository, {
+    DailyRecord? existing,
+  }) async {
+    final data = _data;
+    final now = DateTime.now();
+    final result = await Navigator.of(context).push<MemoRecordResult>(
+      MaterialPageRoute(
+        builder: (_) => MemoRecordScreen(
+          repository: repository,
+          record: existing?.memo,
+          // 홈에서 보고 있는 날짜 + 현재 시각으로 진입
+          now: DateTime(
+            data.date.year,
+            data.date.month,
+            data.date.day,
+            now.hour,
+            now.minute,
+          ),
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() {
+      if (existing != null) _forget(existing);
+      final saved = result.record;
+      // 홈에서 보고 있는 날짜의 기록만 오늘의 기록·그래프 마커에 반영
+      if (saved == null || !DateUtils.isSameDay(saved.time, data.date)) return;
+      _addedRecords.add(DailyRecord.fromMemo(saved));
+    });
+  }
+
   void _forget(DailyRecord record) {
     if (!_addedRecords.remove(record)) _removedRecords.add(record);
   }
@@ -356,6 +474,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final repository = widget.weightRepository;
     final drugRepository = widget.drugRepository;
     final exerciseRepository = widget.exerciseRepository;
+    final insulinRepository = widget.insulinRepository;
+    final glucoseRepository = widget.glucoseRepository;
     if (record.weightKg != null && repository != null) {
       _openWeightRecord(repository, existing: record);
     } else if (record.drug != null && drugRepository != null) {
@@ -363,6 +483,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (_exerciseRecords.containsKey(record) &&
         exerciseRepository != null) {
       _openExerciseRecord(exerciseRepository, existing: record);
+    } else if (record.insulinRecord != null && insulinRepository != null) {
+      _openInsulinRecord(insulinRepository, existing: record);
+    } else if (record.glucose != null && glucoseRepository != null) {
+      _openGlucoseRecord(glucoseRepository, existing: record);
+    } else if (record.memo != null && widget.memoRepository != null) {
+      _openMemoRecord(widget.memoRepository!, existing: record);
     } else {
       _notReady('기록 상세');
     }

@@ -4,9 +4,12 @@ import 'package:glucomi/core/api/cgm_api.dart';
 import 'package:glucomi/core/api/home_api.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/exercise/exercise_models.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
+import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/meal/api_meal_food_repository.dart';
+import 'package:glucomi/features/memo/memo_models.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -48,6 +51,15 @@ class _HomeLoaderState extends State<HomeLoader> {
 
   /// 운동 API 가 아직 없어 메모리 저장소 사용
   final _exerciseRepository = SampleExerciseRepository();
+
+  /// 인슐린 API 가 아직 없어서 화면 안에서만 유지
+  final _insulinRepository = SampleInsulinRepository();
+
+  /// 혈당 직접 기록 API 가 아직 없어서 화면 안에서만 유지
+  final _glucoseRepository = SampleGlucoseRecordRepository();
+
+  /// 메모 저장 API 가 아직 없어서 화면 안에서만 유지
+  final _memoRepository = SampleMemoRepository();
 
   late DateTime _date = _dayOf(widget.initialDate ?? DateTime.now());
   late HomeData _data = HomeData.empty(
@@ -173,6 +185,9 @@ class _HomeLoaderState extends State<HomeLoader> {
           weightRepository: _weightRepository,
           drugRepository: _drugRepository,
           exerciseRepository: _exerciseRepository,
+          insulinRepository: _insulinRepository,
+          glucoseRepository: _glucoseRepository,
+          memoRepository: _memoRepository,
         ),
         if (_loading)
           const Positioned(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/shared/widgets/app_bottom_sheet_frame.dart';
@@ -439,9 +440,9 @@ class _SavedItemSheetState extends State<SavedItemSheet> {
             _SheetDoneBar(
               onPressed: _selected == null
                   ? null
-                  : () => Navigator.of(
-                      context,
-                    ).pop(SavedItemSheetResult.selected(_selected!)),
+                  : () =>
+                        Navigator.of(context)
+                            .pop(SavedItemSheetResult.selected(_selected!)),
             ),
           ] else
             const SizedBox(height: AppSpacing.spacing4),

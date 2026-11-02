@@ -4,6 +4,7 @@ import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
 import 'package:glucomi/features/home/widgets/calendar_day.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
+import 'package:glucomi/features/memo/memo_models.dart';
 
 void main() {
   Future<void> mount(WidgetTester tester, HomeData data) async {
@@ -72,6 +73,43 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('음식 기록하기'), findsOneWidget);
+  });
+
+  testWidgets('메모를 저장하면 오늘의 기록에 표시되고, 누르면 등록후 상태로 열림', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repository = SampleMemoRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(data: HomeData.empty(), memoRepository: repository),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('home-add-record')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('메모'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('메모를 입력해주세요.'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('memo-text')), '배고팠다');
+    await tester.pump();
+    await tester.tap(find.text('저장하기'));
+    await tester.pumpAndSettle();
+
+    expect(repository.records.single.text, '배고팠다');
+    expect(find.text('배고팠다'), findsOneWidget);
+    expect(find.text('기록이 없습니다'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('배고팠다'));
+    await tester.tap(find.text('배고팠다'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('삭제하기'), findsOneWidget);
+    expect(find.text('수정하기'), findsOneWidget);
   });
 
   testWidgets('연결하기를 누르면 연결된 홈(예시 데이터)으로 바뀜', (tester) async {

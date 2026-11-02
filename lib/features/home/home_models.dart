@@ -3,6 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
+import 'package:glucomi/features/insulin/insulin_models.dart';
+import 'package:glucomi/features/memo/memo_models.dart';
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -17,6 +20,7 @@ class CgmPoint {
 enum DailyRecordType {
   food('음식', 'assets/home/memo_food.svg', AppColors.statusWarning),
   weight('체중', 'assets/home/memo_weight.svg', AppColors.green500),
+  glucose('혈당', 'assets/home/menu_glucose.svg', AppColors.statusError),
   insulin('인슐린', 'assets/home/memo_insulin.svg', AppColors.blue400),
   medicine('복약', 'assets/home/memo_medicine.svg', AppColors.purple400),
   memo('메모', 'assets/home/memo_note.svg', AppColors.gray500),
@@ -43,7 +47,23 @@ class DailyRecord {
     this.imageAsset,
     this.weightKg,
     this.drug,
+    this.insulinRecord,
+    this.glucose,
+    this.memo,
   });
+
+  /// 메모 기록 카드 (내용이 없고 사진만 있으면 '사진 n장')
+  factory DailyRecord.fromMemo(MemoRecord memo) {
+    final text = memo.text.trim().replaceAll(RegExp(r'\s*\n\s*'), ' ');
+    final photos = memo.photos.length;
+    return DailyRecord(
+      time: memo.time,
+      type: DailyRecordType.memo,
+      title: text.isNotEmpty ? text : '사진 $photos장',
+      details: text.isNotEmpty && photos > 0 ? ['사진 $photos장'] : const [],
+      memo: memo,
+    );
+  }
 
   final DateTime time;
   final DailyRecordType type;
@@ -63,6 +83,27 @@ class DailyRecord {
 
   /// 복약 기록 (복약 화면 (e) 등록후 진입에 사용)
   final DrugRecord? drug;
+
+  /// 인슐린 기록 (인슐린 화면 (f) 등록후 진입에 사용)
+  final InsulinRecord? insulinRecord;
+
+  /// 혈당 직접 기록 (혈당 화면 (c) 등록후 진입에 사용)
+  final GlucoseRecord? glucose;
+
+  /// 메모 기록 (메모 화면 (c) 등록후 진입에 사용)
+  final MemoRecord? memo;
+
+  /// 인슐린 기록 → 오늘의 기록 카드 (제품명 / 분류 · 투여량)
+  factory DailyRecord.insulin(InsulinRecord record) => DailyRecord(
+    time: record.time,
+    type: DailyRecordType.insulin,
+    title: record.product.name,
+    details: [
+      record.product.category.label,
+      InsulinDosePolicy.formatWithUnit(record.dose),
+    ],
+    insulinRecord: record,
+  );
 }
 
 /// 서버(GET /api/home)가 계산해 준 요약 지표
@@ -266,11 +307,16 @@ class HomeData {
           title: '47.7 kg',
           weightKg: 47.7,
         ),
-        DailyRecord(
-          time: at(11, 43),
-          type: DailyRecordType.insulin,
-          title: '레버미어플렉스펜주',
-          details: const ['장기형', '1U'],
+        DailyRecord.insulin(
+          InsulinRecord(
+            id: 'sample-insulin',
+            time: at(11, 43),
+            product: const InsulinProduct(
+              '레버미어플렉스펜주',
+              InsulinCategory.longActing,
+            ),
+            dose: 1,
+          ),
         ),
         DailyRecord(
           time: at(14, 10),
@@ -278,10 +324,12 @@ class HomeData {
           title: '다이어트 한방약',
           details: const ['다한방'],
         ),
-        DailyRecord(
-          time: at(16, 30),
-          type: DailyRecordType.memo,
-          title: '오늘은 몸이 무거운느낌이라 저혈당 체크를 자주 해야겠다',
+        DailyRecord.fromMemo(
+          MemoRecord(
+            id: 'sample-memo',
+            time: at(16, 30),
+            text: '오늘은 몸이 무거운느낌이라 저혈당 체크를 자주 해야겠다',
+          ),
         ),
         DailyRecord(
           time: at(16, 35),

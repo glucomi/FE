@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
+import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
 import 'package:glucomi/shared/app_scroll_behavior.dart';
@@ -27,6 +29,8 @@ class HomePreviewApp extends StatelessWidget {
         mealRepository: SampleMealFoodRepository(),
         weightRepository: SampleWeightRepository(),
         drugRepository: SampleDrugRepository(),
+        insulinRepository: SampleInsulinRepository.withExamples(),
+        glucoseRepository: SampleGlucoseRecordRepository(),
       ),
       builder: (context, child) {
         if (!kIsWeb) {

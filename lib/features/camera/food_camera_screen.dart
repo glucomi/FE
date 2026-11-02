@@ -10,12 +10,19 @@ import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// 음식 사진 촬영 (진입 · 실시간 촬영 → 분석중)
+///
+/// [analyze] 가 false 면 분석 없이 찍거나 고른 사진([XFile])을 돌려주며 닫힘
+/// (예: 메모 사진 추가)
 class FoodCameraScreen extends StatefulWidget {
   const FoodCameraScreen({
     super.key,
     this.onAnalyze,
     this.loadCameras = availableCameras,
+    this.analyze = true,
   });
+
+  /// false 면 분석중 화면 없이 사진만 돌려줌
+  final bool analyze;
 
   /// 찍거나 고른 사진을 분석 (서버 연동 전에는 없어서 분석중 화면에 머무름)
   final Future<void> Function(XFile photo)? onAnalyze;
@@ -133,6 +140,10 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
   }
 
   Future<void> _analyze(XFile file) async {
+    if (!widget.analyze) {
+      if (mounted) Navigator.of(context).pop(file);
+      return;
+    }
     final bytes = await file.readAsBytes();
     if (!mounted) return;
     setState(() => _photo = bytes);
