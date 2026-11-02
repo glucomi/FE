@@ -12,8 +12,11 @@ class ApiMealFoodRepository implements MealFoodRepository {
   /// 목록/상세에서 받은 즐겨찾기 여부 (음식 id → 즐겨찾기)
   final Map<String, bool> _favorites = {};
 
-  static const int _searchSize = 30;
-  static const int _listSize = 50;
+  static const int _searchSize = MealPolicy.listMaxCount;
+  static const int _pageSize = 50;
+
+  /// 즐겨찾기·직접 등록은 개수 제한 없이 전체를 받음 (안전장치로 최대 20페이지)
+  static const int _maxPages = 20;
 
   @override
   Future<List<MealFood>> search(String query) async {
@@ -27,17 +30,20 @@ class ApiMealFoodRepository implements MealFoodRepository {
     });
   }
 
+  /// MO-MEAL-010: 즐겨찾기 등록 시각 순, 30개 제한 없음 (정렬은 서버 기준)
   @override
-  Future<List<MealFood>> favorites() =>
-      _page('/api/foods/favorites', {'page': 0, 'size': _listSize});
+  Future<List<MealFood>> favorites() => _all('/api/foods/favorites');
 
+  /// MO-MEAL-010: 최근 먹은 음식 최대 30개
   @override
-  Future<List<MealFood>> recent() =>
-      _page('/api/foods/recent', {'page': 0, 'size': _listSize});
+  Future<List<MealFood>> recent() => _page('/api/foods/recent', {
+    'page': 0,
+    'size': MealPolicy.listMaxCount,
+  });
 
+  /// MO-MEAL-010: 직접 등록 음식 전체
   @override
-  Future<List<MealFood>> userFoods() =>
-      _page('/api/foods/custom', {'page': 0, 'size': _listSize});
+  Future<List<MealFood>> userFoods() => _all('/api/foods/custom');
 
   @override
   Future<bool> isFavorite(MealFood food) async => _favorites[food.id] ?? false;
@@ -70,34 +76,27 @@ class ApiMealFoodRepository implements MealFoodRepository {
       body: {
         'eatenAt': formatApiDateTime(record.time),
         'items': [for (final entry in record.entries) _item(entry)],
+        // 메모 필드명은 Swagger 확인 필요, 사진 업로드 API 는 아직 없음
+        if (record.memo.trim().isNotEmpty) 'memo': record.memo.trim(),
       },
     );
   }
 
-  /// MO-MEAL-050 음식 직접 등록 (화면 연결 전, 영양 성분은 기준량 기준)
-  Future<MealFood> createCustomFood({
-    required String name,
-    required double servingAmount,
-    required String servingUnit,
-    required double kcal,
-    String? brand,
-    double? carbs,
-    double? protein,
-    double? fat,
-  }) async {
+  /// MO-MEAL-050 음식 직접 등록 (영양 성분은 기준 섭취량 기준)
+  @override
+  Future<MealFood> createCustomFood(MealFood food) async {
     final json =
         await _client.post(
               '/api/foods/custom',
               body: {
-                'name': name,
-                'brand': ?brand,
-                'servingAmount': servingAmount,
-                'servingUnit': servingUnit.toUpperCase(),
+                'name': food.name,
+                'brand': ?food.brand,
+                'servingAmount': food.servingGram,
+                'servingUnit': food.servingUnit.toUpperCase(),
                 'nutrients': {
-                  'kcal': kcal,
-                  'carbohydrateG': ?carbs,
-                  'proteinG': ?protein,
-                  'fatG': ?fat,
+                  'kcal': food.kcal,
+                  for (final MapEntry(:key, :value) in _nutrientKeys.entries)
+                    if (value(food) case final v?) key: v,
                 },
               },
             )
@@ -107,6 +106,22 @@ class ApiMealFoodRepository implements MealFoodRepository {
       nutrients: json['nutrients'] as Map<String, dynamic>? ?? const {},
     );
   }
+
+  /// 서버 영양성분 키 (탄·단·지 외 키 이름은 Swagger 확인 필요)
+  static final Map<String, double? Function(MealFood)> _nutrientKeys = {
+    'carbohydrateG': (f) => f.carbs,
+    'proteinG': (f) => f.protein,
+    'fatG': (f) => f.fat,
+    'sugarG': (f) => f.sugar,
+    'dietaryFiberG': (f) => f.fiber,
+    'saturatedFatG': (f) => f.saturatedFat,
+    'transFatG': (f) => f.transFat,
+    'fattyAcidG': (f) => f.fattyAcid,
+    'unsaturatedFatG': (f) => f.unsaturatedFat,
+    'cholesterolMg': (f) => f.cholesterol,
+    'sodiumMg': (f) => f.sodium,
+    'caffeineMg': (f) => f.caffeine,
+  };
 
   /// 식사 기록 음식 한 개
   ///
@@ -122,11 +137,34 @@ class ApiMealFoodRepository implements MealFoodRepository {
   };
 
   Future<List<MealFood>> _page(String path, Map<String, Object?> query) async {
+    final (foods, _) = await _fetchPage(path, query);
+    return foods;
+  }
+
+  /// 마지막 페이지까지 이어서 받음
+  Future<List<MealFood>> _all(String path) async {
+    final all = <MealFood>[];
+    for (var page = 0; page < _maxPages; page++) {
+      final (foods, last) = await _fetchPage(path, {
+        'page': page,
+        'size': _pageSize,
+      });
+      all.addAll(foods);
+      if (last || foods.length < _pageSize) break;
+    }
+    return all;
+  }
+
+  Future<(List<MealFood>, bool)> _fetchPage(
+    String path,
+    Map<String, Object?> query,
+  ) async {
     final json = await _client.get(path, query: query) as Map<String, dynamic>;
     final content = json['content'] as List<dynamic>? ?? const [];
-    return [
-      for (final item in content) _summary(item as Map<String, dynamic>),
-    ];
+    return (
+      [for (final item in content) _summary(item as Map<String, dynamic>)],
+      json['last'] == true,
+    );
   }
 
   MealFood _summary(Map<String, dynamic> json) {
@@ -154,6 +192,15 @@ class ApiMealFoodRepository implements MealFoodRepository {
       carbs: asDouble(nutrients['carbohydrateG']) ?? 0,
       protein: asDouble(nutrients['proteinG']) ?? 0,
       fat: asDouble(nutrients['fatG']) ?? 0,
+      sugar: asDouble(nutrients['sugarG']),
+      fiber: asDouble(nutrients['dietaryFiberG']),
+      saturatedFat: asDouble(nutrients['saturatedFatG']),
+      transFat: asDouble(nutrients['transFatG']),
+      fattyAcid: asDouble(nutrients['fattyAcidG']),
+      unsaturatedFat: asDouble(nutrients['unsaturatedFatG']),
+      cholesterol: asDouble(nutrients['cholesterolMg']),
+      sodium: asDouble(nutrients['sodiumMg']),
+      caffeine: asDouble(nutrients['caffeineMg']),
     );
   }
 }
