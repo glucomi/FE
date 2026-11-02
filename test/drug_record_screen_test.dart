@@ -56,7 +56,7 @@ void main() {
     expect(find.text('2026년 04월 30일'), findsOneWidget);
     expect(find.text('오후 02:03'), findsOneWidget);
     expect(find.text('약 종류를 선택해주세요'), findsOneWidget);
-    expect(find.text('제품명을 입력해주세요 (선택)'), findsNothing);
+    expect(find.text('제품명을 입력해주세요(선택)'), findsNothing);
     expect(saveButton(tester).onPressed, isNull);
   });
 

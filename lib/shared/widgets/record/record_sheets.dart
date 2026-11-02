@@ -111,6 +111,9 @@ class _SheetHeader extends StatelessWidget {
 }
 
 /// 라디오 리스트 한 줄 (57px): 제목 · 보조정보 + 오른쪽 라디오
+///
+/// [subtitleAtEnd] 가 true 면 보조정보를 라디오 바로 왼쪽(오른쪽 정렬)에 둠
+/// (예: MO-DRUG-010 {약 종류}(좌) · {제품명}(우))
 class RecordRadioTile extends StatelessWidget {
   const RecordRadioTile({
     super.key,
@@ -118,10 +121,12 @@ class RecordRadioTile extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.subtitle,
+    this.subtitleAtEnd = false,
   });
 
   final String title;
   final String? subtitle;
+  final bool subtitleAtEnd;
   final bool selected;
   final VoidCallback onTap;
 
@@ -154,7 +159,20 @@ class RecordRadioTile extends StatelessWidget {
                         color: AppColors.foregroundPrimary,
                       ),
                     ),
-                    if (hasSubtitle) ...[
+                    if (hasSubtitle && subtitleAtEnd) ...[
+                      const SizedBox(width: AppSpacing.spacing3),
+                      Expanded(
+                        child: Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: AppTypography.bodyMdM.copyWith(
+                            color: AppColors.foregroundTertiary,
+                          ),
+                        ),
+                      ),
+                    ] else if (hasSubtitle) ...[
                       const SizedBox(width: AppSpacing.spacing2),
                       Container(
                         width: 2,
@@ -309,6 +327,7 @@ Future<SavedItemSheetResult?> showSavedItemSheet(
   required String emptyMessage,
   required List<SavedItemOption> items,
   int? selected,
+  bool subtitleAtEnd = false,
 }) {
   return showRecordSheet<SavedItemSheetResult>(
     context,
@@ -320,6 +339,7 @@ Future<SavedItemSheetResult?> showSavedItemSheet(
       emptyMessage: emptyMessage,
       items: items,
       selected: selected,
+      subtitleAtEnd: subtitleAtEnd,
     ),
   );
 }
@@ -334,6 +354,7 @@ class SavedItemSheet extends StatefulWidget {
     required this.emptyMessage,
     required this.items,
     this.selected,
+    this.subtitleAtEnd = false,
   });
 
   final String title;
@@ -343,6 +364,9 @@ class SavedItemSheet extends StatefulWidget {
   final String emptyMessage;
   final List<SavedItemOption> items;
   final int? selected;
+
+  /// 보조정보를 라디오 왼쪽(오른쪽 정렬)에 둘지
+  final bool subtitleAtEnd;
 
   @override
   State<SavedItemSheet> createState() => _SavedItemSheetState();
@@ -401,6 +425,7 @@ class _SavedItemSheetState extends State<SavedItemSheet> {
                           key: ValueKey('saved-item-$i'),
                           title: items[i].title,
                           subtitle: items[i].subtitle,
+                          subtitleAtEnd: widget.subtitleAtEnd,
                           selected: _selected == i,
                           onTap: () => setState(() => _selected = i),
                         ),

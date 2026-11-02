@@ -110,6 +110,8 @@ class _DrugRecordScreenState extends State<DrugRecordScreen> {
           SavedItemOption(title: d.type.label, subtitle: d.productName),
       ],
       selected: preselect == null || preselect < 0 ? null : preselect,
+      // 정책: {약 종류}(좌) · {제품명}(우) 한 줄 구성
+      subtitleAtEnd: true,
     );
     if (result == null || !mounted) return;
 
@@ -305,7 +307,7 @@ class _DrugRecordScreenState extends State<DrugRecordScreen> {
           RecordTextInput(
             fieldKey: const ValueKey('drug-product'),
             controller: _productController,
-            hintText: '제품명을 입력해주세요 (선택)',
+            hintText: '제품명을 입력해주세요(선택)',
             maxLength: DrugPolicy.productNameMaxLength,
             enabled: _canEdit,
           ),

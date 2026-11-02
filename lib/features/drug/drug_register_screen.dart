@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
@@ -82,11 +83,23 @@ class _DrugRegisterScreenState extends State<DrugRegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      '복용약 선택',
-                      style: AppTypography.headingH3.copyWith(
-                        color: AppColors.foregroundPrimary,
-                      ),
+                    // 약 종류는 필수 항목 (정책 MO-DRUG-020 ②)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '복용약 선택',
+                          style: AppTypography.headingH3.copyWith(
+                            color: AppColors.foregroundPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.spacing05),
+                        SvgPicture.asset(
+                          'assets/record/required_mark.svg',
+                          width: 8,
+                          height: 8,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: AppSpacing.spacing2),
                     RecordSelectField(
@@ -100,7 +113,7 @@ class _DrugRegisterScreenState extends State<DrugRegisterScreen> {
                       RecordTextInput(
                         fieldKey: const ValueKey('drug-register-product'),
                         controller: _productController,
-                        hintText: '제품명을 입력해주세요 (선택)',
+                        hintText: '제품명을 입력해주세요(선택)',
                         maxLength: DrugPolicy.productNameMaxLength,
                         enabled: !_busy,
                       ),
