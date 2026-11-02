@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/insulin/insulin_models.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -18,6 +19,7 @@ class CgmPoint {
 enum DailyRecordType {
   food('음식', 'assets/home/memo_food.svg', AppColors.statusWarning),
   weight('체중', 'assets/home/memo_weight.svg', AppColors.green500),
+  glucose('혈당', 'assets/home/menu_glucose.svg', AppColors.statusError),
   insulin('인슐린', 'assets/home/memo_insulin.svg', AppColors.blue400),
   medicine('복약', 'assets/home/memo_medicine.svg', AppColors.purple400),
   memo('메모', 'assets/home/memo_note.svg', AppColors.gray500),
@@ -45,6 +47,7 @@ class DailyRecord {
     this.weightKg,
     this.drug,
     this.insulinRecord,
+    this.glucose,
   });
 
   final DateTime time;
@@ -65,8 +68,12 @@ class DailyRecord {
 
   /// 복약 기록 (복약 화면 (e) 등록후 진입에 사용)
   final DrugRecord? drug;
+
   /// 인슐린 기록 (인슐린 화면 (f) 등록후 진입에 사용)
   final InsulinRecord? insulinRecord;
+
+  /// 혈당 직접 기록 (혈당 화면 (c) 등록후 진입에 사용)
+  final GlucoseRecord? glucose;
 
   /// 인슐린 기록 → 오늘의 기록 카드 (제품명 / 분류 · 투여량)
   factory DailyRecord.insulin(InsulinRecord record) => DailyRecord(

@@ -4,6 +4,7 @@ import 'package:glucomi/core/api/member_api.dart';
 import 'package:glucomi/features/curation/curation_models.dart';
 import 'package:glucomi/features/curation/curation_screen.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
+import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 import 'package:glucomi/features/home/home_loader.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
@@ -130,6 +131,8 @@ class SignupFlow extends StatelessWidget {
       drugRepository: SampleDrugRepository(),
       // 인슐린 API 가 없어서 메모리 저장소 사용
       insulinRepository: SampleInsulinRepository(),
+      // 혈당 직접 기록 API 가 없어서 메모리 저장소 사용
+      glucoseRepository: SampleGlucoseRecordRepository(),
     );
   }
 }
