@@ -52,7 +52,7 @@ class AppDateField extends StatelessWidget {
                 if (isRequired) ...[
                   const SizedBox(width: AppSpacing.spacing05),
                   SvgPicture.asset(
-                    'assets/exercise/required_mark.svg',
+                    'assets/record/required_mark.svg',
                     width: 8,
                     height: 8,
                   ),

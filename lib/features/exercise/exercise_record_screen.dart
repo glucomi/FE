@@ -9,6 +9,10 @@ import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
+import 'package:glucomi/shared/widgets/record/record_field_label.dart';
+import 'package:glucomi/shared/widgets/record/record_memo_field.dart';
+import 'package:glucomi/shared/widgets/record/record_time_field.dart';
+import 'package:glucomi/shared/widgets/record/record_time_sheet.dart';
 
 /// MO-EXERCISE-010 운동
 ///
@@ -39,18 +43,21 @@ class ExerciseRecordScreen extends StatefulWidget {
 class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
   late bool _editing = widget.record == null;
 
-  /// 날짜 + 시간 (진입 시 오늘 날짜 · 현재 시각, 수정 모드는 저장값 유지)
-  late DateTime _time = widget.record?.time ?? (widget.now ?? DateTime.now());
+  /// 날짜 · 시간 (진입 시 오늘 날짜 · 현재 시각, 수정 모드는 저장값 유지)
+  late DateTime _date = _dayOf(widget.record?.time ?? _now);
+  late TimeOfDay _time = TimeOfDay.fromDateTime(widget.record?.time ?? _now);
   late final List<ExerciseEntry> _entries = [...?widget.record?.entries];
   late final TextEditingController _memo = TextEditingController(
     text: widget.record?.memo ?? '',
   );
   bool _busy = false;
 
-  DateTime get _today {
-    final t = widget.now ?? DateTime.now();
-    return DateTime(t.year, t.month, t.day);
-  }
+  DateTime get _now => widget.now ?? DateTime.now();
+
+  static DateTime _dayOf(DateTime t) => DateTime(t.year, t.month, t.day);
+
+  DateTime get _recordTime =>
+      DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
   /// 운동 1건 이상 + 모든 운동 시간이 0분/빈 값이 아님
   bool get _canSave => _entries.isNotEmpty && _entries.every((e) => e.isValid);
@@ -67,23 +74,15 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
   Future<void> _pickDate() async {
     final picked = await showWeightDateSheet(
       context,
-      selected: _time,
-      today: _today,
+      selected: _date,
+      today: _dayOf(_now),
     );
     if (picked == null || !mounted) return;
-    setState(() {
-      _time = DateTime(
-        picked.year,
-        picked.month,
-        picked.day,
-        _time.hour,
-        _time.minute,
-      );
-    });
+    setState(() => _date = picked);
   }
 
   Future<void> _pickTime() async {
-    final picked = await showExerciseTimeSheet(context, initial: _time);
+    final picked = await showRecordTimeSheet(context, selected: _time);
     if (picked == null || !mounted) return;
     setState(() => _time = picked);
   }
@@ -110,7 +109,7 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
     if (!_canSave || _busy) return;
     final record = ExerciseRecord(
       id: widget.record?.id,
-      time: _time,
+      time: _recordTime,
       entries: _entries,
       memo: _memo.text,
     );
@@ -189,14 +188,14 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
                           Expanded(
                             child: AppDateField(
                               key: const ValueKey('exercise-date'),
-                              date: _time,
+                              date: _date,
                               isRequired: true,
                               onTap: editable ? _pickDate : null,
                             ),
                           ),
                           const SizedBox(width: AppSpacing.spacing3),
                           Expanded(
-                            child: ExerciseTimeField(
+                            child: RecordTimeField(
                               key: const ValueKey('exercise-time'),
                               time: _time,
                               onTap: editable ? _pickTime : null,
@@ -207,12 +206,22 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
                       const SizedBox(height: AppSpacing.spacing6),
                       const Align(
                         alignment: Alignment.centerLeft,
-                        child: ExerciseFieldLabel('운동 선택', isRequired: true),
+                        child: RecordFieldLabel(
+                          label: '운동 선택',
+                          required: true,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.spacing3),
                       ..._buildEntries(editable),
                       const SizedBox(height: AppSpacing.spacing6),
-                      ExerciseMemoField(controller: _memo, enabled: editable),
+                      // COM-04 보조문구는 화면마다 다름 — MO-EXERCISE-010 정책 문구 그대로
+                      RecordMemoField(
+                        fieldKey: const ValueKey('exercise-memo'),
+                        controller: _memo,
+                        hintText: '복용과 관련한 내용을 메모해보세요.',
+                        maxLength: ExercisePolicy.maxMemoLength,
+                        enabled: editable,
+                      ),
                     ],
                   ),
                 ),
