@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/core/api/cgm_api.dart';
 import 'package:glucomi/core/api/home_api.dart';
+import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
 import 'package:glucomi/features/meal/api_meal_food_repository.dart';
@@ -42,6 +43,7 @@ class _HomeLoaderState extends State<HomeLoader> {
 
   /// 체중 API 가 아직 없어서 화면 안에서만 유지
   final _weightRepository = SampleWeightRepository();
+  final _drugRepository = SampleDrugRepository();
 
   late DateTime _date = _dayOf(widget.initialDate ?? DateTime.now());
   late HomeData _data = HomeData.empty(
@@ -165,6 +167,7 @@ class _HomeLoaderState extends State<HomeLoader> {
           onRecordsChanged: () => _load(_date),
           mealRepository: _mealRepository,
           weightRepository: _weightRepository,
+          drugRepository: _drugRepository,
         ),
         if (_loading)
           const Positioned(

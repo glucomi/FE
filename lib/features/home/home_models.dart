@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/features/drug/drug_models.dart';
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -41,6 +42,7 @@ class DailyRecord {
     this.carbsGram,
     this.imageAsset,
     this.weightKg,
+    this.drug,
   });
 
   final DateTime time;
@@ -58,6 +60,9 @@ class DailyRecord {
 
   /// 체중 기록의 kg (체중 화면 (b) 등록후 진입에 사용)
   final double? weightKg;
+
+  /// 복약 기록 (복약 화면 (e) 등록후 진입에 사용)
+  final DrugRecord? drug;
 }
 
 /// 서버(GET /api/home)가 계산해 준 요약 지표
