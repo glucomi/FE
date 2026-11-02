@@ -54,7 +54,8 @@ void main() {
 
     expect(find.text('흑미밥'), findsOneWidget);
     expect(find.text('김밥'), findsOneWidget);
-    expect(find.text('찾고 계신 ‘밥’이 없으신가요?'), findsOneWidget);
+    expect(find.text('찾고 계신 음식이 없으신가요?'), findsOneWidget);
+    expect(find.byKey(const ValueKey('meal-suggest-query')), findsOneWidget);
     // 검색 요령 안내는 목록 아래쪽에 있어서 스크롤해서 확인
     await tester.dragUntilVisible(
       find.text('이렇게 해보는건 어때요?'),
@@ -136,6 +137,8 @@ void main() {
     expect(find.text('예상 혈당 변화'), findsOneWidget);
     expect(find.byKey(const ValueKey('meal-glucose-grade')), findsOneWidget);
     expect(find.text('당류'), findsOneWidget);
+    expect(find.text('기준량'), findsOneWidget);
+    expect(find.text('트랜스지방'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('meal-detail-amount-inc')));
     await tester.pump();
@@ -144,6 +147,11 @@ void main() {
       tester.widget<Text>(find.byKey(const ValueKey('meal-detail-kcal'))).data,
       '130',
     );
+
+    // 단위는 탭할 때마다 순환 (g → 인분)
+    await tester.tap(find.byKey(const ValueKey('meal-detail-unit-select')));
+    await tester.pump();
+    expect(find.text('인분'), findsOneWidget);
 
     await tester.tap(find.text('추가하기'));
     await tester.pumpAndSettle();
@@ -175,7 +183,7 @@ void main() {
     expect(find.text('3/1000'), findsOneWidget);
   });
 
-  testWidgets('직접 등록: 필수값을 채워야 저장되고 등록 후 수량 시트가 뜸', (tester) async {
+  testWidgets('직접 등록: 필수값을 채워야 저장되고 등록 후 바로 담김', (tester) async {
     await mount(tester, SampleMealFoodRepository());
 
     await tester.tap(find.byKey(const ValueKey('meal-tab-2')));
@@ -202,7 +210,8 @@ void main() {
     await tester.tap(find.text('저장하기'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('meal-add')), findsOneWidget);
+    // COM-POP-02 에 담김
+    expect(find.byKey(const ValueKey('meal-submit')), findsOneWidget);
     expect(find.text('닭가슴살볼'), findsWidgets);
   });
 

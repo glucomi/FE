@@ -224,8 +224,8 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
     );
     if (food == null || !mounted) return;
     await _loadTabs();
-    // 등록 후 수량 입력 바텀시트로 바로 담을 수 있게 (MO-MEAL-020 (c))
-    if (mounted) await _openFood(food);
+    // MO-MEAL-050 ⑥: 등록한 음식을 기준 섭취량으로 담고 COM-POP-02 노출
+    if (mounted) _putInCart(MealEntry.initial(food));
   }
 
   @override

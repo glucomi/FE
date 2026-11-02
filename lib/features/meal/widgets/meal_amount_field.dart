@@ -194,7 +194,8 @@ class MealNumberInput extends StatelessWidget {
   }
 }
 
-/// 단위 선택 (Select). g 단위는 음식 기준 단위(g / ml)로 표시
+/// 단위 선택 (Select). COM-POP-01 ⑧: 탭할 때마다 단위 순환 (g → 인분 → g …)
+/// g 단위는 음식 기준 단위(g / ml)로 표시
 class MealUnitSelect extends StatelessWidget {
   const MealUnitSelect({
     super.key,
@@ -209,45 +210,41 @@ class MealUnitSelect extends StatelessWidget {
 
   String _label(MealUnit u) => u == MealUnit.gram ? servingUnit : u.label;
 
+  MealUnit get _next =>
+      MealUnit.values[(unit.index + 1) % MealUnit.values.length];
+
   @override
   Widget build(BuildContext context) {
     final style = AppTypography.bodyMdR.copyWith(
       color: AppColors.foregroundPrimary,
     );
 
-    return PopupMenuButton<MealUnit>(
-      onSelected: onChanged,
-      tooltip: '단위 선택',
-      position: PopupMenuPosition.under,
-      color: AppColors.neutralsBackground,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        side: const BorderSide(color: AppColors.borderDefault),
-        borderRadius: BorderRadius.circular(AppRadius.radiusSm),
-      ),
-      constraints: const BoxConstraints.tightFor(width: 120),
-      itemBuilder: (context) => [
-        for (final u in MealUnit.values)
-          PopupMenuItem(value: u, child: Text(_label(u), style: style)),
-      ],
-      child: Container(
-        width: 120,
-        height: AppSpacing.controlHeightXl,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spacing4),
-        decoration: BoxDecoration(
-          color: AppColors.neutralsBackground,
-          border: Border.all(color: AppColors.borderDefault),
-          borderRadius: BorderRadius.circular(AppRadius.radiusSm),
-        ),
-        child: Row(
-          children: [
-            Expanded(child: Text(_label(unit), style: style)),
-            SvgPicture.asset(
-              'assets/meal/chevron_down.svg',
-              width: 20,
-              height: 20,
-            ),
-          ],
+    return Semantics(
+      button: true,
+      label: '단위 ${_label(unit)}, 탭하면 ${_label(_next)}(으)로 바뀜',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => onChanged(_next),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 120,
+          height: AppSpacing.controlHeightXl,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spacing4),
+          decoration: BoxDecoration(
+            color: AppColors.neutralsBackground,
+            border: Border.all(color: AppColors.borderDefault),
+            borderRadius: BorderRadius.circular(AppRadius.radiusSm),
+          ),
+          child: Row(
+            children: [
+              Expanded(child: Text(_label(unit), style: style)),
+              SvgPicture.asset(
+                'assets/meal/chevron_down.svg',
+                width: 20,
+                height: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );

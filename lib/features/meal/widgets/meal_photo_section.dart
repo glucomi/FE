@@ -62,7 +62,8 @@ class _MealPhotoSectionState extends State<MealPhotoSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const MealFieldLabel(label: '사진 추가하기'),
+        // ③ 선택 항목
+        const MealFieldLabel(label: '사진 추가하기(선택)'),
         const SizedBox(height: AppSpacing.spacing2),
         if (photos.isNotEmpty) ...[
           AspectRatio(

@@ -180,6 +180,14 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         const SizedBox(height: AppSpacing.spacing4),
         const Divider(height: 1, thickness: 1, color: AppColors.borderDefault),
         const SizedBox(height: AppSpacing.spacing6),
+        // ③ 기준량: 영양 정보가 기록된 1회 제공량
+        _ValueRow(
+          label: '기준량',
+          value: f.servingGram,
+          unit: f.servingUnit,
+          keyName: 'meal-detail-serving',
+        ),
+        const SizedBox(height: AppSpacing.spacing3),
         _ValueRow(
           label: '총 열량',
           value: e.kcal.roundToDouble(),
@@ -192,8 +200,8 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         _NutrientCard(
           main: _ValueRow(label: '탄수화물', value: e.carbs, unit: 'g'),
           subs: [
-            if (f.sugar != null)
-              _ValueRow(label: '당류', value: e.scaled(f.sugar)!, unit: 'g', sub: true),
+            // ③ 탄수화물(당) — 값이 없으면 '-'
+            _ValueRow(label: '당류', value: e.scaled(f.sugar), unit: 'g', sub: true),
             if (f.fiber != null)
               _ValueRow(label: '식이섬유', value: e.scaled(f.fiber)!, unit: 'g', sub: true),
           ],
@@ -204,10 +212,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         _NutrientCard(
           main: _ValueRow(label: '지방', value: e.fat, unit: 'g'),
           subs: [
-            if (f.saturatedFat != null)
-              _ValueRow(label: '포화지방', value: e.scaled(f.saturatedFat)!, unit: 'g', sub: true),
-            if (f.transFat != null)
-              _ValueRow(label: '트랜스지방', value: e.scaled(f.transFat)!, unit: 'g', sub: true),
+            // ③ 지방(포화·트랜스) — 값이 없으면 '-'
+            _ValueRow(label: '포화지방', value: e.scaled(f.saturatedFat), unit: 'g', sub: true),
+            _ValueRow(label: '트랜스지방', value: e.scaled(f.transFat), unit: 'g', sub: true),
             if (f.fattyAcid != null)
               _ValueRow(label: '지방산', value: e.scaled(f.fattyAcid)!, unit: 'g', sub: true),
             if (f.unsaturatedFat != null)

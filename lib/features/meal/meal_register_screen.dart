@@ -420,7 +420,7 @@ class _NutrientInput extends StatelessWidget {
   }
 }
 
-/// 기준 섭취량 단위 (g / ml)
+/// 기준 섭취량 단위 (g / ml). 공통 인라인 컴포넌트와 같이 탭하면 순환
 class _ServingUnitSelect extends StatelessWidget {
   const _ServingUnitSelect({required this.unit, required this.onChanged});
 
@@ -434,40 +434,34 @@ class _ServingUnitSelect extends StatelessWidget {
     final style = AppTypography.bodyMdR.copyWith(
       color: AppColors.foregroundPrimary,
     );
-    return PopupMenuButton<String>(
-      key: const ValueKey('meal-register-unit'),
-      onSelected: onChanged,
-      tooltip: '단위 선택',
-      position: PopupMenuPosition.under,
-      color: AppColors.neutralsBackground,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        side: const BorderSide(color: AppColors.borderDefault),
-        borderRadius: BorderRadius.circular(AppRadius.radiusSm),
-      ),
-      constraints: const BoxConstraints.tightFor(width: 120),
-      itemBuilder: (context) => [
-        for (final u in _units)
-          PopupMenuItem(value: u, child: Text(u, style: style)),
-      ],
-      child: Container(
-        width: 120,
-        height: AppSpacing.controlHeightXl,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spacing4),
-        decoration: BoxDecoration(
-          color: AppColors.neutralsBackground,
-          border: Border.all(color: AppColors.borderDefault),
-          borderRadius: BorderRadius.circular(AppRadius.radiusSm),
-        ),
-        child: Row(
-          children: [
-            Expanded(child: Text(unit, style: style)),
-            SvgPicture.asset(
-              'assets/meal/chevron_down.svg',
-              width: 20,
-              height: 20,
-            ),
-          ],
+    final next = _units[(_units.indexOf(unit) + 1) % _units.length];
+    return Semantics(
+      button: true,
+      label: '단위 $unit, 탭하면 $next(으)로 바뀜',
+      excludeSemantics: true,
+      child: GestureDetector(
+        key: const ValueKey('meal-register-unit'),
+        onTap: () => onChanged(next),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 120,
+          height: AppSpacing.controlHeightXl,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spacing4),
+          decoration: BoxDecoration(
+            color: AppColors.neutralsBackground,
+            border: Border.all(color: AppColors.borderDefault),
+            borderRadius: BorderRadius.circular(AppRadius.radiusSm),
+          ),
+          child: Row(
+            children: [
+              Expanded(child: Text(unit, style: style)),
+              SvgPicture.asset(
+                'assets/meal/chevron_down.svg',
+                width: 20,
+                height: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
