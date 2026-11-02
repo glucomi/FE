@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/camera/food_camera_screen.dart';
+import 'package:glucomi/features/drug/drug_models.dart';
+import 'package:glucomi/features/drug/drug_record_screen.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/widgets/add_record_menu.dart';
 import 'package:glucomi/features/home/widgets/cgm_chart.dart';
@@ -28,6 +30,7 @@ class HomeScreen extends StatefulWidget {
     this.onSelectDate,
     this.mealRepository,
     this.weightRepository,
+    this.drugRepository,
     this.onConnectSensor,
     this.onRecordsChanged,
   });
@@ -48,6 +51,9 @@ class HomeScreen extends StatefulWidget {
 
   /// 체중 저장소 (있으면 + 메뉴의 체중과 오늘의 기록 체중 카드에서 체중 화면을 엶)
   final WeightRepository? weightRepository;
+
+  /// 복약 저장소 (있으면 + 메뉴의 복약과 오늘의 기록 복약 카드에서 복약 화면을 엶)
+  final DrugRepository? drugRepository;
 
   /// 연결하기를 눌렀을 때 센서를 연결하고 새 데이터를 돌려줌
   /// (없으면 예시 데이터로 연결된 화면을 보여줌)
@@ -147,6 +153,8 @@ class _HomeScreenState extends State<HomeScreen> {
       await _openMealRecord(widget.mealRepository!);
     } else if (type == AddRecordType.weight && widget.weightRepository != null) {
       await _openWeightRecord(widget.weightRepository!);
+    } else if (type == AddRecordType.medicine && widget.drugRepository != null) {
+      await _openDrugRecord(widget.drugRepository!);
     } else {
       _notReady('${type.label} 기록');
     }
@@ -250,14 +258,50 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  /// MO-DRUG-010. [existing] 이 있으면 (e) 등록후 상태로 엶
+  Future<void> _openDrugRecord(
+    DrugRepository repository, {
+    DailyRecord? existing,
+  }) async {
+    final result = await Navigator.of(context).push<DrugRecordResult>(
+      MaterialPageRoute(
+        builder: (_) => DrugRecordScreen(
+          repository: repository,
+          record: existing?.drug,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    final data = _data;
+    setState(() {
+      if (existing != null) _forget(existing);
+      final saved = result.record;
+      // 홈에서 보고 있는 날짜의 기록만 오늘의 기록·그래프 마커에 반영
+      if (saved == null || !DateUtils.isSameDay(saved.time, data.date)) return;
+      _addedRecords.add(
+        DailyRecord(
+          time: saved.time,
+          type: DailyRecordType.medicine,
+          title: saved.type.label,
+          details: [?saved.productName],
+          drug: saved,
+        ),
+      );
+    });
+  }
+
   void _forget(DailyRecord record) {
     if (!_addedRecords.remove(record)) _removedRecords.add(record);
   }
 
   void _onTapRecord(DailyRecord record) {
     final repository = widget.weightRepository;
+    final drugRepository = widget.drugRepository;
     if (record.weightKg != null && repository != null) {
       _openWeightRecord(repository, existing: record);
+    } else if (record.drug != null && drugRepository != null) {
+      _openDrugRecord(drugRepository, existing: record);
     } else {
       _notReady('기록 상세');
     }
