@@ -4,6 +4,7 @@ import 'package:glucomi/features/signup/term_document_screen.dart';
 import 'package:glucomi/features/signup/widgets/signup_all_consent_card.dart';
 import 'package:glucomi/features/signup/widgets/signup_consent_row.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 @immutable
@@ -51,9 +52,8 @@ class _SignupScreenState extends State<SignupScreen> {
     '[선택] 이벤트 및 혜택 알림 수신',
   ];
 
-  void _message(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+  void _message(String message, {AppToastType type = AppToastType.info}) {
+    showAppToast(context, message, type: type);
   }
 
   void _setAll(bool value) {
@@ -94,7 +94,10 @@ class _SignupScreenState extends State<SignupScreen> {
       );
     } catch (_) {
       if (mounted) {
-        _message('가입을 완료하지 못했어요. 다시 시도해 주세요.');
+        _message(
+          '가입을 완료하지 못했어요. 다시 시도해 주세요.',
+          type: AppToastType.error,
+        );
       }
     } finally {
       if (mounted) {

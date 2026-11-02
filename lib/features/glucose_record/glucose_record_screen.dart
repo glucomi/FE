@@ -9,6 +9,7 @@ import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
 import 'package:glucomi/shared/widgets/app_memo_field.dart';
 import 'package:glucomi/shared/widgets/app_time_field.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 /// MO-GLUCOSER-010 혈당 (직접 기록)
@@ -167,9 +168,7 @@ class _GlucoseRecordScreenState extends State<GlucoseRecordScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppToast(context, message, type: AppToastType.error);
   }
 
   @override

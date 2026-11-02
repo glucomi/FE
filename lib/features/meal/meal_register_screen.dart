@@ -8,6 +8,7 @@ import 'package:glucomi/features/meal/meal_models.dart';
 import 'package:glucomi/features/meal/widgets/meal_amount_field.dart';
 import 'package:glucomi/features/meal/widgets/meal_form_widgets.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 /// MO-MEAL-050 직접 등록
@@ -127,9 +128,7 @@ class _MealRegisterScreenState extends State<MealRegisterScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       final message = e is ApiException ? e.message : '음식을 등록하지 못했어요.';
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(message)));
+      showAppToast(context, message, type: AppToastType.error);
       return;
     }
     if (mounted) Navigator.of(context).pop(created);

@@ -7,6 +7,7 @@ import 'package:glucomi/features/curation/widgets/guideline_alert.dart';
 import 'package:glucomi/features/curation/widgets/range_wheel_picker.dart';
 import 'package:glucomi/features/curation/widgets/ruler_picker.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 /// MO-CURATION-010 큐레이션 (당뇨 유형 → 키 → 몸무게 → 목표 혈당 범위)
@@ -82,9 +83,7 @@ class _CurationScreenState extends State<CurationScreen> {
     );
 
     if (widget.onComplete == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('큐레이션 저장 서비스 연결 준비 중입니다.')),
-      );
+      showAppToast(context, '큐레이션 저장 서비스 연결 준비 중입니다.');
       return;
     }
 
@@ -93,8 +92,10 @@ class _CurationScreenState extends State<CurationScreen> {
       await widget.onComplete!(result);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('저장하지 못했어요. 다시 시도해 주세요.')),
+        showAppToast(
+          context,
+          '저장하지 못했어요. 다시 시도해 주세요.',
+          type: AppToastType.error,
         );
       }
     } finally {

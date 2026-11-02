@@ -5,6 +5,7 @@ import 'package:glucomi/features/insulin/my_insulin_screen.dart';
 import 'package:glucomi/features/insulin/widgets/insulin_fields.dart';
 import 'package:glucomi/features/insulin/widgets/insulin_type_sheet.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 import 'package:glucomi/shared/widgets/record/record_select_field.dart';
 
@@ -69,9 +70,7 @@ class _InsulinRegisterScreenState extends State<InsulinRegisterScreen> {
     try {
       final added = await widget.repository.addMyInsulin(product, dose);
       if (!mounted) return;
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('새 인슐린을 등록했어요.')));
+      showAppToastOn(messenger, '새 인슐린을 등록했어요.', type: AppToastType.success);
       if (widget.openMyInsulinAfterSave) {
         await Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(
@@ -83,9 +82,7 @@ class _InsulinRegisterScreenState extends State<InsulinRegisterScreen> {
       }
     } on DuplicateInsulinException {
       // COM-TOAST-02
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('이미 등록된 인슐린이에요')));
+      showAppToastOn(messenger, '이미 등록된 인슐린이에요', type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

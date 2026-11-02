@@ -13,6 +13,7 @@ import 'package:glucomi/features/meal/widgets/meal_food_tile.dart';
 import 'package:glucomi/features/meal/widgets/meal_search_bar.dart';
 import 'package:glucomi/features/meal/widgets/meal_search_panels.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 
 /// MO-MEAL-010 / 020 음식 기록하기
 /// 음식을 골라 담고 기록하기 → MO-MEAL-040 에서 저장하면 [MealRecord] 를 돌려주며 닫힘
@@ -206,9 +207,7 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
   void _showError(Object error, String fallback) {
     if (!mounted) return;
     final message = error is ApiException ? error.message : fallback;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppToast(context, message, type: AppToastType.error);
   }
 
   /// MO-MEAL-050 직접 등록 (검색 중이면 검색어를 음식명 기본값으로)

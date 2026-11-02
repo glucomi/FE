@@ -27,6 +27,7 @@ import 'package:glucomi/features/memo/memo_models.dart';
 import 'package:glucomi/features/memo/memo_record_screen.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
 import 'package:glucomi/features/weight/weight_record_screen.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 
 /// MO-HOME-010 홈
 class HomeScreen extends StatefulWidget {
@@ -136,11 +137,11 @@ class _HomeScreenState extends State<HomeScreen> {
         targetMax: current.targetMax ?? 140,
       );
     });
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('센서가 연결됐어요. (예시 데이터)')),
-      );
+    showAppToast(
+      context,
+      '센서가 연결됐어요. (예시 데이터)',
+      type: AppToastType.success,
+    );
   }
 
   Future<void> _openCalendar() async {
@@ -209,9 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final messenger = ScaffoldMessenger.of(context);
     if (widget.onRecordsChanged != null) {
       // 음식 기록하기 화면에서 이미 서버에 저장됨 → 홈을 새로 불러옴
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('식단을 기록했어요.')));
+      showAppToastOn(messenger, '식단을 기록했어요.', type: AppToastType.success);
       await widget.onRecordsChanged!();
       return;
     }
@@ -228,9 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     });
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('식단을 기록했어요.')));
+    showAppToastOn(messenger, '식단을 기록했어요.', type: AppToastType.success);
   }
 
   /// 오늘의 기록 중 가장 마지막 체중
@@ -504,9 +501,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _notReady(String feature) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$feature 준비 중입니다.')));
+    showAppToast(context, '$feature 준비 중입니다.');
   }
 
   @override

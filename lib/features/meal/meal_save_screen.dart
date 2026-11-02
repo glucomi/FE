@@ -14,6 +14,7 @@ import 'package:glucomi/features/meal/widgets/meal_time_sheet.dart';
 import 'package:glucomi/features/weight/widgets/weight_date_sheet.dart';
 import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 /// 사진 한 장 고르기 (없으면 MO-CAMERA-010 으로 이동해서 찍거나 고름)
@@ -89,7 +90,10 @@ class _MealSaveScreenState extends State<MealSaveScreen> {
   Future<void> _addPhoto() async {
     // ⑪ 최대 10장, 초과 시 토스트
     if (_photos.length >= MealPolicy.photoMaxCount) {
-      _showMessage('사진은 최대 ${MealPolicy.photoMaxCount}장까지 등록할 수 있어요.');
+      _showMessage(
+        '사진은 최대 ${MealPolicy.photoMaxCount}장까지 등록할 수 있어요.',
+        type: AppToastType.info, // COM-TOAST-03
+      );
       return;
     }
     final photo = await (widget.pickPhoto ?? _openCamera)(context);
@@ -168,11 +172,9 @@ class _MealSaveScreenState extends State<MealSaveScreen> {
     if (mounted) Navigator.of(context).pop(record);
   }
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {AppToastType type = AppToastType.error}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppToast(context, message, type: type);
   }
 
   @override
