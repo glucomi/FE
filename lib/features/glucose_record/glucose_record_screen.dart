@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 import 'package:glucomi/features/glucose_record/widgets/glucose_value_field.dart';
@@ -6,7 +7,6 @@ import 'package:glucomi/features/weight/widgets/weight_date_sheet.dart';
 import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
-import 'package:glucomi/shared/widgets/app_icons.dart';
 import 'package:glucomi/shared/widgets/app_memo_field.dart';
 import 'package:glucomi/shared/widgets/app_time_field.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
@@ -190,10 +190,11 @@ class _GlucoseRecordScreenState extends State<GlucoseRecordScreen> {
                   key: const ValueKey('glucose-close'),
                   onTap: _busy ? null : _close,
                   behavior: HitTestBehavior.opaque,
-                  child: const SizedBox(
+                  // 정책서 기준 X(닫기) 아이콘 (디자인 페이지는 < 로 그려져 있음)
+                  child: SvgPicture.asset(
+                    'assets/weight/close.svg',
                     width: 24,
                     height: 24,
-                    child: AppChevronLeft(),
                   ),
                 ),
               ),
