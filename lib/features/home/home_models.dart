@@ -3,8 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
-import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
+import 'package:glucomi/features/insulin/insulin_models.dart';
+import 'package:glucomi/features/memo/memo_models.dart';
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -48,7 +49,21 @@ class DailyRecord {
     this.drug,
     this.insulinRecord,
     this.glucose,
+    this.memo,
   });
+
+  /// 메모 기록 카드 (내용이 없고 사진만 있으면 '사진 n장')
+  factory DailyRecord.fromMemo(MemoRecord memo) {
+    final text = memo.text.trim().replaceAll(RegExp(r'\s*\n\s*'), ' ');
+    final photos = memo.photos.length;
+    return DailyRecord(
+      time: memo.time,
+      type: DailyRecordType.memo,
+      title: text.isNotEmpty ? text : '사진 $photos장',
+      details: text.isNotEmpty && photos > 0 ? ['사진 $photos장'] : const [],
+      memo: memo,
+    );
+  }
 
   final DateTime time;
   final DailyRecordType type;
@@ -74,6 +89,9 @@ class DailyRecord {
 
   /// 혈당 직접 기록 (혈당 화면 (c) 등록후 진입에 사용)
   final GlucoseRecord? glucose;
+
+  /// 메모 기록 (메모 화면 (c) 등록후 진입에 사용)
+  final MemoRecord? memo;
 
   /// 인슐린 기록 → 오늘의 기록 카드 (제품명 / 분류 · 투여량)
   factory DailyRecord.insulin(InsulinRecord record) => DailyRecord(
@@ -306,10 +324,12 @@ class HomeData {
           title: '다이어트 한방약',
           details: const ['다한방'],
         ),
-        DailyRecord(
-          time: at(16, 30),
-          type: DailyRecordType.memo,
-          title: '오늘은 몸이 무거운느낌이라 저혈당 체크를 자주 해야겠다',
+        DailyRecord.fromMemo(
+          MemoRecord(
+            id: 'sample-memo',
+            time: at(16, 30),
+            text: '오늘은 몸이 무거운느낌이라 저혈당 체크를 자주 해야겠다',
+          ),
         ),
         DailyRecord(
           time: at(16, 35),
