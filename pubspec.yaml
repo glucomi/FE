@@ -28,6 +28,7 @@ flutter:
     - assets/curation/
     - assets/home/
     - assets/meal/
+    - assets/record/
     - assets/signup/
     - assets/terms/
     - assets/weight/
