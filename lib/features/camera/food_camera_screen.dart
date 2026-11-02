@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// 음식 사진 촬영 (진입 · 실시간 촬영 → 분석중)
@@ -153,9 +154,7 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
 
   void _showMessage(String text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(text)));
+    showAppToast(context, text, type: AppToastType.error);
   }
 
   @override

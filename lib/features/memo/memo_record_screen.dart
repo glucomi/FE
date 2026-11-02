@@ -13,6 +13,7 @@ import 'package:glucomi/features/weight/widgets/weight_date_sheet.dart';
 import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 /// 사진 한 장을 받아옴 (취소하면 null)
@@ -120,7 +121,10 @@ class _MemoRecordScreenState extends State<MemoRecordScreen> {
 
   Future<void> _addPhoto() async {
     if (_photos.length >= MemoPolicy.maxPhotos) {
-      _showMessage('사진은 최대 ${MemoPolicy.maxPhotos}장까지 추가할 수 있어요.');
+      _showMessage(
+        '사진은 최대 ${MemoPolicy.maxPhotos}장까지 추가할 수 있어요.',
+        type: AppToastType.info,
+      );
       return;
     }
     FocusScope.of(context).unfocus();
@@ -191,11 +195,9 @@ class _MemoRecordScreenState extends State<MemoRecordScreen> {
     }
   }
 
-  void _showMessage(String text) {
+  void _showMessage(String text, {AppToastType type = AppToastType.error}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(text)));
+    showAppToast(context, text, type: type);
   }
 
   @override

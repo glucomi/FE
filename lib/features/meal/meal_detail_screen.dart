@@ -8,6 +8,7 @@ import 'package:glucomi/features/meal/widgets/meal_amount_field.dart';
 import 'package:glucomi/features/meal/widgets/meal_food_tile.dart';
 import 'package:glucomi/features/meal/widgets/meal_glucose_gauge.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 /// MO-MEAL-030 음식 상세 화면
@@ -74,9 +75,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   void _showError(Object error, String fallback) {
     if (!mounted) return;
     final message = error is ApiException ? error.message : fallback;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppToast(context, message, type: AppToastType.error);
   }
 
   @override

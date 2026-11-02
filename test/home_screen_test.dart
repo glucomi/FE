@@ -144,8 +144,10 @@ void main() {
     expect(find.text('2026.09'), findsOneWidget);
     expect(find.text('일'), findsOneWidget);
 
-    // 미래 날짜는 선택되지 않음
+    // 미래 날짜는 선택되지 않고 COM-TOAST-03 안내
     await tester.tap(find.byKey(const ValueKey('month-calendar-9-28')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('미래 날짜는 선택 불가합니다'), findsOneWidget);
     await tester.pumpAndSettle();
     expect(find.text('2026.09'), findsOneWidget);
 

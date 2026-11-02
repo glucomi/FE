@@ -11,6 +11,7 @@ import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/meal/api_meal_food_repository.dart';
 import 'package:glucomi/features/memo/memo_models.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 서버 데이터로 홈을 띄우는 화면 (로그인 상태에서 사용)
@@ -143,17 +144,13 @@ class _HomeLoaderState extends State<HomeLoader> {
         webOnlyWindowName: '_blank',
       );
       if (!mounted) return null;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              opened
-                  ? '아이센스 로그인을 마친 뒤 새로고침을 눌러주세요.'
-                  : '아이센스 로그인 페이지를 열지 못했어요.',
-            ),
-          ),
-        );
+      showAppToast(
+        context,
+        opened
+            ? '아이센스 로그인을 마친 뒤 새로고침을 눌러주세요.'
+            : '아이센스 로그인 페이지를 열지 못했어요.',
+        type: opened ? AppToastType.info : AppToastType.error,
+      );
     } catch (e) {
       _message(e, '센서 연결을 시작하지 못했어요.');
     }
@@ -163,9 +160,7 @@ class _HomeLoaderState extends State<HomeLoader> {
   void _message(Object error, String fallback) {
     if (!mounted) return;
     final message = error is ApiException ? error.message : fallback;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppToast(context, message, type: AppToastType.error);
   }
 
   @override

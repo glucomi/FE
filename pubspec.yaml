@@ -35,6 +35,7 @@ flutter:
     - assets/record/
     - assets/signup/
     - assets/terms/
+    - assets/toast/
     - assets/weight/
   fonts:
     - family: Pretendard

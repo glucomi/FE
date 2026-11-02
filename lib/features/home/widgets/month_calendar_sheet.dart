@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/home/widgets/calendar_day.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 
 /// 달력 전체보기 (COM-POP-10). 날짜를 누르면 그 날짜를 돌려줌
 Future<DateTime?> showMonthCalendarSheet(
@@ -201,7 +202,10 @@ class _MonthCalendarSheetState extends State<MonthCalendarSheet> {
             ),
       score: widget.scores[date],
       dimmed: date.month != _month.month,
-      onTap: isFuture ? null : () => Navigator.of(context).pop(date),
+      // 미래 일자는 선택 불가 → COM-TOAST-03
+      onTap: isFuture
+          ? () => showAppToastOverlay(context, '미래 날짜는 선택 불가합니다')
+          : () => Navigator.of(context).pop(date),
     );
   }
 }
