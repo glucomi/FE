@@ -29,6 +29,7 @@ flutter:
     - assets/exercise/
     - assets/home/
     - assets/meal/
+    - assets/record/
     - assets/signup/
     - assets/terms/
     - assets/weight/

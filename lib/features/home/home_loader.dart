@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/core/api/cgm_api.dart';
 import 'package:glucomi/core/api/home_api.dart';
+import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/exercise/exercise_models.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
@@ -43,6 +44,7 @@ class _HomeLoaderState extends State<HomeLoader> {
 
   /// 체중 API 가 아직 없어서 화면 안에서만 유지
   final _weightRepository = SampleWeightRepository();
+  final _drugRepository = SampleDrugRepository();
 
   /// 운동 API 가 아직 없어 메모리 저장소 사용
   final _exerciseRepository = SampleExerciseRepository();
@@ -169,6 +171,7 @@ class _HomeLoaderState extends State<HomeLoader> {
           onRecordsChanged: () => _load(_date),
           mealRepository: _mealRepository,
           weightRepository: _weightRepository,
+          drugRepository: _drugRepository,
           exerciseRepository: _exerciseRepository,
         ),
         if (_loading)

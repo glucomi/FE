@@ -3,44 +3,71 @@ import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/meal/meal_models.dart';
 import 'package:glucomi/shared/widgets/app_radio.dart';
 
-/// 음식 목록 한 줄 (COM-01)
+/// 음식 목록 한 줄 (COM-001)
+///
+/// MO-MEAL-020: 왼쪽 텍스트 영역 탭 → [onTap] (음식 상세 MO-MEAL-030),
+/// 오른쪽 선택 버튼 탭 → [onSelect] (수량 입력 COM-POP-01)
 class MealFoodTile extends StatelessWidget {
   const MealFoodTile({
     super.key,
     required this.food,
     this.selected = false,
     this.onTap,
+    this.onSelect,
   });
 
   final MealFood food;
   final bool selected;
   final VoidCallback? onTap;
+  final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.spacing5,
-            vertical: AppSpacing.spacing4,
+    return Container(
+      padding: const EdgeInsets.only(left: AppSpacing.spacing5),
+      decoration: const BoxDecoration(
+        color: AppColors.neutralsBackground,
+        border: Border(bottom: BorderSide(color: AppColors.borderDefault)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: '${food.name} 상세 보기',
+              child: GestureDetector(
+                key: ValueKey('meal-food-detail-${food.id}'),
+                onTap: onTap,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppSpacing.spacing4,
+                  ),
+                  child: MealFoodSummary(food: food),
+                ),
+              ),
+            ),
           ),
-          decoration: const BoxDecoration(
-            color: AppColors.neutralsBackground,
-            border: Border(bottom: BorderSide(color: AppColors.borderDefault)),
+          Semantics(
+            button: true,
+            selected: selected,
+            label: '${food.name} 선택',
+            child: GestureDetector(
+              key: ValueKey('meal-food-select-${food.id}'),
+              onTap: onSelect,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.spacing2,
+                  AppSpacing.spacing4,
+                  AppSpacing.spacing5,
+                  AppSpacing.spacing4,
+                ),
+                child: AppRadio(selected: selected),
+              ),
+            ),
           ),
-          child: Row(
-            children: [
-              Expanded(child: MealFoodSummary(food: food)),
-              const SizedBox(width: AppSpacing.spacing2),
-              AppRadio(selected: selected),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
