@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/features/insulin/insulin_models.dart';
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -41,6 +42,7 @@ class DailyRecord {
     this.carbsGram,
     this.imageAsset,
     this.weightKg,
+    this.insulinRecord,
   });
 
   final DateTime time;
@@ -58,6 +60,21 @@ class DailyRecord {
 
   /// 체중 기록의 kg (체중 화면 (b) 등록후 진입에 사용)
   final double? weightKg;
+
+  /// 인슐린 기록 (인슐린 화면 (f) 등록후 진입에 사용)
+  final InsulinRecord? insulinRecord;
+
+  /// 인슐린 기록 → 오늘의 기록 카드 (제품명 / 분류 · 투여량)
+  factory DailyRecord.insulin(InsulinRecord record) => DailyRecord(
+    time: record.time,
+    type: DailyRecordType.insulin,
+    title: record.product.name,
+    details: [
+      record.product.category.label,
+      InsulinDosePolicy.formatWithUnit(record.dose),
+    ],
+    insulinRecord: record,
+  );
 }
 
 /// 서버(GET /api/home)가 계산해 준 요약 지표
@@ -261,11 +278,16 @@ class HomeData {
           title: '47.7 kg',
           weightKg: 47.7,
         ),
-        DailyRecord(
-          time: at(11, 43),
-          type: DailyRecordType.insulin,
-          title: '레버미어플렉스펜주',
-          details: const ['장기형', '1U'],
+        DailyRecord.insulin(
+          InsulinRecord(
+            id: 'sample-insulin',
+            time: at(11, 43),
+            product: const InsulinProduct(
+              '레버미어플렉스펜주',
+              InsulinCategory.longActing,
+            ),
+            dose: 1,
+          ),
         ),
         DailyRecord(
           time: at(14, 10),

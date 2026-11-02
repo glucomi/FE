@@ -7,12 +7,16 @@ class AppBottomSheetFrame extends StatelessWidget {
     super.key,
     required this.child,
     this.bottomPadding = AppSpacing.spacing4,
+    this.horizontalPadding = AppSpacing.spacing4,
   });
 
   final Widget child;
 
   /// 홈 인디케이터(안전 영역) 위 여백
   final double bottomPadding;
+
+  /// 좌우 여백 (리스트를 시트 끝까지 붙일 때 0)
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +51,9 @@ class AppBottomSheetFrame extends StatelessWidget {
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(
-              AppSpacing.spacing4,
+              horizontalPadding,
               AppSpacing.spacing10,
-              AppSpacing.spacing4,
+              horizontalPadding,
               bottomPadding + bottomInset,
             ),
             child: child,

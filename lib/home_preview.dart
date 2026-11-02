@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
+import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
 import 'package:glucomi/shared/app_scroll_behavior.dart';
@@ -25,6 +26,7 @@ class HomePreviewApp extends StatelessWidget {
         data: HomeData.sample(),
         mealRepository: SampleMealFoodRepository(),
         weightRepository: SampleWeightRepository(),
+        insulinRepository: SampleInsulinRepository.withExamples(),
       ),
       builder: (context, child) {
         if (!kIsWeb) {

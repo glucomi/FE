@@ -6,6 +6,7 @@ import 'package:glucomi/features/curation/curation_screen.dart';
 import 'package:glucomi/features/home/home_loader.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
+import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/signup/signup_screen.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
@@ -124,6 +125,8 @@ class SignupFlow extends StatelessWidget {
       mealRepository: SampleMealFoodRepository(),
       // 체중 API 가 없어서 메모리 저장소 사용
       weightRepository: SampleWeightRepository(),
+      // 인슐린 API 가 없어서 메모리 저장소 사용
+      insulinRepository: SampleInsulinRepository(),
     );
   }
 }
