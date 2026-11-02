@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/features/memo/memo_models.dart';
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -41,7 +42,21 @@ class DailyRecord {
     this.carbsGram,
     this.imageAsset,
     this.weightKg,
+    this.memo,
   });
+
+  /// 메모 기록 카드 (내용이 없고 사진만 있으면 '사진 n장')
+  factory DailyRecord.fromMemo(MemoRecord memo) {
+    final text = memo.text.trim().replaceAll(RegExp(r'\s*\n\s*'), ' ');
+    final photos = memo.photos.length;
+    return DailyRecord(
+      time: memo.time,
+      type: DailyRecordType.memo,
+      title: text.isNotEmpty ? text : '사진 $photos장',
+      details: text.isNotEmpty && photos > 0 ? ['사진 $photos장'] : const [],
+      memo: memo,
+    );
+  }
 
   final DateTime time;
   final DailyRecordType type;
@@ -58,6 +73,9 @@ class DailyRecord {
 
   /// 체중 기록의 kg (체중 화면 (b) 등록후 진입에 사용)
   final double? weightKg;
+
+  /// 메모 기록 (메모 화면 (c) 등록후 진입에 사용)
+  final MemoRecord? memo;
 }
 
 /// 서버(GET /api/home)가 계산해 준 요약 지표
@@ -273,10 +291,12 @@ class HomeData {
           title: '다이어트 한방약',
           details: const ['다한방'],
         ),
-        DailyRecord(
-          time: at(16, 30),
-          type: DailyRecordType.memo,
-          title: '오늘은 몸이 무거운느낌이라 저혈당 체크를 자주 해야겠다',
+        DailyRecord.fromMemo(
+          MemoRecord(
+            id: 'sample-memo',
+            time: at(16, 30),
+            text: '오늘은 몸이 무거운느낌이라 저혈당 체크를 자주 해야겠다',
+          ),
         ),
         DailyRecord(
           time: at(16, 35),
