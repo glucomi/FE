@@ -463,7 +463,8 @@ class ExerciseMemoField extends StatelessWidget {
     super.key,
     required this.controller,
     this.enabled = true,
-    this.hintText = '운동과 관련한 내용을 메모해보세요.',
+    // MO-EXERCISE-010 정책 보조문구 그대로 (디자인은 '운동과/혈당과…' — 확인 필요)
+    this.hintText = '복용과 관련한 내용을 메모해보세요.',
   });
 
   final TextEditingController controller;

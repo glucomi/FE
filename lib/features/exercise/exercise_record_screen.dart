@@ -190,6 +190,7 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
                             child: AppDateField(
                               key: const ValueKey('exercise-date'),
                               date: _time,
+                              isRequired: true,
                               onTap: editable ? _pickDate : null,
                             ),
                           ),
@@ -237,16 +238,13 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
     );
   }
 
+  /// 운동 항목 목록 + 운동 추가하기 (정책상 여러 건 기록 가능 — 수정 가능할 때만 추가 버튼 노출)
   List<Widget> _buildEntries(bool editable) {
-    // 디자인 (b)/(c) 는 운동이 있으면 추가 버튼이 없음 → 1건까지만 추가 (확인 필요)
-    if (_entries.isEmpty) {
-      return [ExerciseAddButton(onTap: editable ? _addExercise : null)];
-    }
     return [
       for (var i = 0; i < _entries.length; i++) ...[
         if (i > 0) const SizedBox(height: AppSpacing.spacing2),
         ExerciseEntryTile(
-          key: ValueKey('exercise-entry-${_entries[i].exercise.id}'),
+          key: ValueKey('exercise-entry-$i-${_entries[i].exercise.id}'),
           entry: _entries[i],
           enabled: editable,
           // 시간 변경 시 소모 칼로리 실시간 재계산
@@ -255,6 +253,10 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
           // 전체 삭제 시 (a) 상태로 복귀 → 저장하기 비활성
           onRemove: () => setState(() => _entries.removeAt(i)),
         ),
+      ],
+      if (_editing) ...[
+        if (_entries.isNotEmpty) const SizedBox(height: AppSpacing.spacing2),
+        ExerciseAddButton(onTap: editable ? _addExercise : null),
       ],
     ];
   }
