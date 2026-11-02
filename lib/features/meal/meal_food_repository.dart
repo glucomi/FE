@@ -16,6 +16,9 @@ abstract class MealFoodRepository {
 
   /// 기록하기 — 담은 음식들을 한 번에 저장
   Future<void> saveRecord(MealRecord record);
+
+  /// MO-MEAL-050 직접 등록 (영양 성분은 기준 섭취량 기준)
+  Future<MealFood> createCustomFood(MealFood food);
 }
 
 /// 미리보기 / 테스트용 메모리 저장소
@@ -24,8 +27,10 @@ class SampleMealFoodRepository implements MealFoodRepository {
     List<MealFood>? foods,
     Set<String>? favoriteIds,
     List<String>? recentIds,
-  }) : _foods = foods ?? sampleFoods,
-       _favoriteIds = favoriteIds ?? {'black-rice', 'user-multigrain', 'user-tuna'},
+  }) : _favoriteIds = [
+         ...(favoriteIds ?? {'black-rice', 'user-multigrain', 'user-tuna'}),
+       ],
+       _foodsList = [...(foods ?? sampleFoods)],
        _recentIds = [
          ...(recentIds ?? ['gimbap', 'rolled-egg', 'tuna-kimchi-stew']),
        ];
@@ -37,30 +42,39 @@ class SampleMealFoodRepository implements MealFoodRepository {
     recentIds: [],
   );
 
-  final List<MealFood> _foods;
-  final Set<String> _favoriteIds;
+  final List<MealFood> _foodsList;
+
+  /// 즐겨찾기 (최근 등록이 앞)
+  final List<String> _favoriteIds;
+  int _customSeq = 0;
   final List<String> _recentIds;
 
   List<MealFood> _byIds(Iterable<String> ids) => [
-    for (final id in ids) ..._foods.where((f) => f.id == id),
+    for (final id in ids) ..._foodsList.where((f) => f.id == id),
   ];
 
   @override
   Future<List<MealFood>> search(String query) async {
     final q = query.replaceAll(' ', '');
     if (q.isEmpty) return const [];
-    return _foods.where((f) => f.name.replaceAll(' ', '').contains(q)).toList();
+    return _foodsList
+        .where((f) => f.name.replaceAll(' ', '').contains(q))
+        .take(MealPolicy.listMaxCount)
+        .toList();
   }
 
   @override
   Future<List<MealFood>> favorites() async => _byIds(_favoriteIds);
 
   @override
-  Future<List<MealFood>> recent() async => _byIds(_recentIds);
+  Future<List<MealFood>> recent() async =>
+      _byIds(_recentIds.take(MealPolicy.listMaxCount));
 
+  /// 직접 등록: 최근 등록이 앞, 개수 제한 없음
   @override
-  Future<List<MealFood>> userFoods() async =>
-      _foods.where((f) => f.source == MealFoodSource.user).toList();
+  Future<List<MealFood>> userFoods() async => _foodsList.reversed
+      .where((f) => f.source == MealFoodSource.user)
+      .toList();
 
   @override
   Future<bool> isFavorite(MealFood food) async =>
@@ -68,11 +82,9 @@ class SampleMealFoodRepository implements MealFoodRepository {
 
   @override
   Future<void> setFavorite(MealFood food, {required bool favorite}) async {
-    if (favorite) {
-      _favoriteIds.add(food.id);
-    } else {
-      _favoriteIds.remove(food.id);
-    }
+    // 해제 후 재등록하면 등록 시각이 최신으로 갱신되어 맨 앞으로
+    _favoriteIds.remove(food.id);
+    if (favorite) _favoriteIds.insert(0, food.id);
   }
 
   @override
@@ -88,9 +100,37 @@ class SampleMealFoodRepository implements MealFoodRepository {
     }
   }
 
+  @override
+  Future<MealFood> createCustomFood(MealFood food) async {
+    final created = MealFood(
+      id: 'user-new-${++_customSeq}',
+      name: food.name,
+      source: MealFoodSource.user,
+      brand: food.brand,
+      servingGram: food.servingGram,
+      servingUnit: food.servingUnit,
+      kcal: food.kcal,
+      carbs: food.carbs,
+      protein: food.protein,
+      fat: food.fat,
+      sugar: food.sugar,
+      fiber: food.fiber,
+      saturatedFat: food.saturatedFat,
+      transFat: food.transFat,
+      fattyAcid: food.fattyAcid,
+      unsaturatedFat: food.unsaturatedFat,
+      cholesterol: food.cholesterol,
+      sodium: food.sodium,
+      caffeine: food.caffeine,
+    );
+    // 동일 음식명도 별도 항목으로 누적 (중복 허용)
+    _foodsList.add(created);
+    return created;
+  }
+
   /// Figma 예시 음식 + 자주 먹는 음식 몇 가지 (영양 정보는 기준량 기준)
   static const sampleFoods = <MealFood>[
-    MealFood(id: 'black-rice', name: '흑미밥', servingGram: 150, kcal: 122, carbs: 26, protein: 3, fat: 1),
+    MealFood(id: 'black-rice', name: '흑미밥', servingGram: 150, kcal: 122, carbs: 26, protein: 3, fat: 1, sugar: 0.5, fiber: 1.5, saturatedFat: 0.2, sodium: 3),
     MealFood(id: 'multigrain-rice', name: '잡곡밥', servingGram: 100, kcal: 108, carbs: 23, protein: 3, fat: 0.5),
     MealFood(id: 'hetbahn', name: '햇반', category: '가공 식품', brand: 'CJ', servingGram: 210, kcal: 315, carbs: 69, protein: 5, fat: 1),
     MealFood(id: 'white-rice', name: '백미밥', servingGram: 210, kcal: 310, carbs: 68, protein: 5, fat: 0.6),

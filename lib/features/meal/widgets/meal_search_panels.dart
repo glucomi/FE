@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 
-/// "찾고 계신 ‘밥’이 없으신가요?" 직접 등록 안내 카드 (Dialog)
+/// 검색어 안내 영역 (MO-MEAL-020 ②③): "찾고 계신 음식이 없으신가요?" + 검색어 + 직접 등록 버튼
+/// 검색어가 있으면 결과 유무와 상관없이 항상 노출
 class MealRegisterSuggestion extends StatelessWidget {
   const MealRegisterSuggestion({
     super.key,
@@ -40,17 +41,21 @@ class MealRegisterSuggestion extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // MO-MEAL-020 ②: 고정 문구 + 입력된 검색어
                     Text(
-                      '찾고 계신 ‘$query’이 없으신가요?',
-                      style: AppTypography.bodyMdM.copyWith(
-                        color: AppColors.foregroundPrimary,
+                      '찾고 계신 음식이 없으신가요?',
+                      style: AppTypography.bodySmR.copyWith(
+                        color: AppColors.foregroundTertiary,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.spacing05),
                     Text(
-                      '한번만 등록하면 계속 활용할 수 있어요',
-                      style: AppTypography.bodySmR.copyWith(
-                        color: AppColors.foregroundTertiary,
+                      query,
+                      key: const ValueKey('meal-suggest-query'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodyMdM.copyWith(
+                        color: AppColors.foregroundPrimary,
                       ),
                     ),
                   ],

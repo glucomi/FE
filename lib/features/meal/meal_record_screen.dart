@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/features/meal/meal_detail_screen.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/meal/meal_models.dart';
+import 'package:glucomi/features/meal/meal_register_screen.dart';
+import 'package:glucomi/features/meal/meal_save_screen.dart';
 import 'package:glucomi/features/meal/widgets/meal_amount_sheet.dart';
 import 'package:glucomi/features/meal/widgets/meal_cart_bar.dart';
 import 'package:glucomi/features/meal/widgets/meal_food_tile.dart';
@@ -12,22 +15,22 @@ import 'package:glucomi/features/meal/widgets/meal_search_panels.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
 
 /// MO-MEAL-010 / 020 음식 기록하기
-/// 음식을 골라 담고 기록하기를 누르면 [MealRecord] 를 돌려주며 닫힘
+/// 음식을 골라 담고 기록하기 → MO-MEAL-040 에서 저장하면 [MealRecord] 를 돌려주며 닫힘
 class MealRecordScreen extends StatefulWidget {
   const MealRecordScreen({
     super.key,
     required this.repository,
     this.clock = DateTime.now,
-    this.onRegisterFood,
+    this.pickPhoto,
   });
 
   final MealFoodRepository repository;
 
-  /// 기록 시각 (테스트용으로 바꿀 수 있음)
+  /// 기록 시각 기본값 (테스트용으로 바꿀 수 있음)
   final DateTime Function() clock;
 
-  /// 직접 등록 화면으로 이동 (없으면 준비 중 안내)
-  final VoidCallback? onRegisterFood;
+  /// MO-MEAL-040 사진 추가 (없으면 MO-CAMERA-010 으로 이동)
+  final MealPhotoPicker? pickPhoto;
 
   @override
   State<MealRecordScreen> createState() => _MealRecordScreenState();
@@ -49,7 +52,6 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
   List<List<MealFood>> _tabFoods = const [[], [], []];
   List<MealFood> _results = const [];
   final List<MealEntry> _cart = [];
-  bool _saving = false;
 
   bool get _searching => _query.isNotEmpty;
 
@@ -144,12 +146,16 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
         }
         await _loadTabs();
       },
-      onNutritionInfo: () => _notReady('영양정보'),
+      // COM-POP-01 에서 바꾼 수량은 반영하지 않고 기본값으로 상세 진입
+      onNutritionInfo: () => _openDetail(detailed),
     );
     if (entry == null || !mounted) return;
+    _putInCart(entry);
+  }
 
+  void _putInCart(MealEntry entry) {
     setState(() {
-      final index = _cart.indexWhere((e) => e.food == food);
+      final index = _cart.indexWhere((e) => e.food == entry.food);
       if (index >= 0) {
         _cart[index] = entry;
       } else {
@@ -158,21 +164,43 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
     });
   }
 
-  Future<void> _submit() async {
-    if (_saving) return;
-    final record = MealRecord(
-      time: widget.clock(),
-      entries: List.unmodifiable(_cart),
+  /// MO-MEAL-030 음식 상세 → 추가하기 시 담고 검색 화면으로 복귀
+  Future<void> _openDetail(MealFood food) async {
+    _searchFocus.unfocus();
+    final entry = await Navigator.of(context).push<MealEntry>(
+      MaterialPageRoute(
+        builder: (_) => MealDetailScreen(
+          repository: widget.repository,
+          initial: MealEntry.initial(food),
+          onFavoriteChanged: _loadTabs,
+        ),
+      ),
     );
-    setState(() => _saving = true);
-    try {
-      await widget.repository.saveRecord(record);
-    } catch (e) {
-      if (mounted) setState(() => _saving = false);
-      _showError(e, '식단을 기록하지 못했어요. 다시 시도해 주세요.');
-      return;
-    }
-    if (mounted) Navigator.of(context).pop(record);
+    if (entry == null || !mounted) return;
+    _putInCart(entry);
+  }
+
+  /// 기록하기 → MO-MEAL-040 저장 화면. 저장되면 기록을 들고 닫힘
+  Future<void> _openSave() async {
+    _searchFocus.unfocus();
+    final record = await Navigator.of(context).push<MealRecord>(
+      MaterialPageRoute(
+        builder: (_) => MealSaveScreen(
+          repository: widget.repository,
+          entries: List.unmodifiable(_cart),
+          clock: widget.clock,
+          pickPhoto: widget.pickPhoto,
+          // 040 에서 바꾼 수량·삭제를 장바구니에도 반영
+          onEntriesChanged: (entries) {
+            if (!mounted) return;
+            setState(() => _cart
+              ..clear()
+              ..addAll(entries));
+          },
+        ),
+      ),
+    );
+    if (record != null && mounted) Navigator.of(context).pop(record);
   }
 
   void _showError(Object error, String fallback) {
@@ -183,18 +211,21 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _registerFood() {
-    if (widget.onRegisterFood != null) {
-      widget.onRegisterFood!();
-    } else {
-      _notReady('직접 등록');
-    }
-  }
-
-  void _notReady(String feature) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$feature 준비 중입니다.')));
+  /// MO-MEAL-050 직접 등록 (검색 중이면 검색어를 음식명 기본값으로)
+  Future<void> _registerFood() async {
+    _searchFocus.unfocus();
+    final food = await Navigator.of(context).push<MealFood>(
+      MaterialPageRoute(
+        builder: (_) => MealRegisterScreen(
+          repository: widget.repository,
+          initialName: _query,
+        ),
+      ),
+    );
+    if (food == null || !mounted) return;
+    await _loadTabs();
+    // MO-MEAL-050 ⑥: 등록한 음식을 기준 섭취량으로 담고 COM-POP-02 노출
+    if (mounted) _putInCart(MealEntry.initial(food));
   }
 
   @override
@@ -264,7 +295,7 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
                 entries: _cart,
                 onEdit: (entry) => _openFood(entry.food),
                 onRemove: (entry) => setState(() => _cart.remove(entry)),
-                onSubmit: _submit,
+                onSubmit: _openSave,
               ),
           ],
         ),
@@ -272,11 +303,13 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
     );
   }
 
+  // 텍스트 영역 → 음식 상세(030), 선택 버튼 → 수량 입력(COM-POP-01)
   Widget _tile(MealFood food) => MealFoodTile(
     key: ValueKey('meal-food-${food.id}'),
     food: food,
     selected: _cartEntryFor(food) != null,
-    onTap: () => _openFood(food),
+    onTap: () => _openDetail(food),
+    onSelect: () => _openFood(food),
   );
 
   Widget _buildTab() {
