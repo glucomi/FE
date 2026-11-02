@@ -12,6 +12,8 @@ class MealSearchBar extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.onClear,
+    this.hintText = '음식명을 입력해 주세요',
+    this.maxLength = 50,
   });
 
   final TextEditingController controller;
@@ -19,6 +21,12 @@ class MealSearchBar extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final VoidCallback? onClear;
+
+  /// 빈 검색창 안내 문구
+  final String hintText;
+
+  /// 검색어 최대 길이 (MO-MEAL-010: 50자)
+  final int maxLength;
 
   @override
   Widget build(BuildContext context) {
@@ -49,14 +57,15 @@ class MealSearchBar extends StatelessWidget {
                   onChanged: onChanged,
                   onSubmitted: onSubmitted,
                   textInputAction: TextInputAction.search,
-                  // MO-MEAL-010: 검색어 최대 50자
-                  inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(maxLength),
+                  ],
                   style: textStyle,
                   cursorColor: AppColors.accentsBrand,
                   decoration: InputDecoration(
                     isCollapsed: true,
                     border: InputBorder.none,
-                    hintText: '음식명을 입력해 주세요',
+                    hintText: hintText,
                     hintStyle: textStyle.copyWith(
                       color: AppColors.foregroundQuaternary,
                     ),

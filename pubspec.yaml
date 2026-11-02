@@ -26,6 +26,7 @@ flutter:
   assets:
     - assets/camera/
     - assets/curation/
+    - assets/exercise/
     - assets/home/
     - assets/meal/
     - assets/record/

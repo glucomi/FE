@@ -4,6 +4,8 @@ import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/camera/food_camera_screen.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/drug/drug_record_screen.dart';
+import 'package:glucomi/features/exercise/exercise_models.dart';
+import 'package:glucomi/features/exercise/exercise_record_screen.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/widgets/add_record_menu.dart';
 import 'package:glucomi/features/home/widgets/cgm_chart.dart';
@@ -31,6 +33,7 @@ class HomeScreen extends StatefulWidget {
     this.mealRepository,
     this.weightRepository,
     this.drugRepository,
+    this.exerciseRepository,
     this.onConnectSensor,
     this.onRecordsChanged,
   });
@@ -54,6 +57,9 @@ class HomeScreen extends StatefulWidget {
 
   /// 복약 저장소 (있으면 + 메뉴의 복약과 오늘의 기록 복약 카드에서 복약 화면을 엶)
   final DrugRepository? drugRepository;
+
+  /// 운동 저장소 (있으면 + 메뉴의 운동과 이 화면에서 기록한 운동 카드에서 운동 화면을 엶)
+  final ExerciseRepository? exerciseRepository;
 
   /// 연결하기를 눌렀을 때 센서를 연결하고 새 데이터를 돌려줌
   /// (없으면 예시 데이터로 연결된 화면을 보여줌)
@@ -83,6 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 이 화면에서 지우거나 새 값으로 바꾼 기존 항목
   final Set<DailyRecord> _removedRecords = {};
+
+  /// 이 화면에서 기록한 운동 카드 → 원본 기록 (카드 탭 시 (c) 등록후로 엶)
+  final Map<DailyRecord, ExerciseRecord> _exerciseRecords = {};
 
   /// 연결하기로 센서를 연결한 뒤의 데이터 (서버 연동 전까지 예시 데이터)
   HomeData? _connectedData;
@@ -155,6 +164,9 @@ class _HomeScreenState extends State<HomeScreen> {
       await _openWeightRecord(widget.weightRepository!);
     } else if (type == AddRecordType.medicine && widget.drugRepository != null) {
       await _openDrugRecord(widget.drugRepository!);
+    } else if (type == AddRecordType.exercise &&
+        widget.exerciseRepository != null) {
+      await _openExerciseRecord(widget.exerciseRepository!);
     } else {
       _notReady('${type.label} 기록');
     }
@@ -295,13 +307,62 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_addedRecords.remove(record)) _removedRecords.add(record);
   }
 
+  /// MO-EXERCISE-010. [existing] 이 있으면 (c) 등록후 상태로 엶
+  Future<void> _openExerciseRecord(
+    ExerciseRepository repository, {
+    DailyRecord? existing,
+  }) async {
+    final original = existing == null ? null : _exerciseRecords[existing];
+    final now = DateTime.now();
+    final data = _data;
+    final result = await Navigator.of(context).push<ExerciseRecordResult>(
+      MaterialPageRoute(
+        builder: (_) => ExerciseRecordScreen(
+          repository: repository,
+          record: original,
+          // 홈에서 보고 있는 날짜 + 현재 시각으로 진입
+          now: DateTime(
+            data.date.year,
+            data.date.month,
+            data.date.day,
+            now.hour,
+            now.minute,
+          ),
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() {
+      if (existing != null) {
+        _exerciseRecords.remove(existing);
+        _forget(existing);
+      }
+      final saved = result.record;
+      // 홈에서 보고 있는 날짜의 기록만 오늘의 기록·그래프 마커에 반영
+      if (saved == null || !DateUtils.isSameDay(saved.time, data.date)) return;
+      final card = DailyRecord(
+        time: saved.time,
+        type: DailyRecordType.exercise,
+        title: saved.title,
+        details: ['${saved.totalMinutes}분', '${saved.totalKcal} kcal'],
+      );
+      _exerciseRecords[card] = saved;
+      _addedRecords.add(card);
+    });
+  }
+
   void _onTapRecord(DailyRecord record) {
     final repository = widget.weightRepository;
     final drugRepository = widget.drugRepository;
+    final exerciseRepository = widget.exerciseRepository;
     if (record.weightKg != null && repository != null) {
       _openWeightRecord(repository, existing: record);
     } else if (record.drug != null && drugRepository != null) {
       _openDrugRecord(drugRepository, existing: record);
+    } else if (_exerciseRecords.containsKey(record) &&
+        exerciseRepository != null) {
+      _openExerciseRecord(exerciseRepository, existing: record);
     } else {
       _notReady('기록 상세');
     }
