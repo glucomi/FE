@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:glucomi/core/api/api_config.dart';
 import 'package:glucomi/core/api/auth_session.dart';
 import 'package:glucomi/core/api/member_api.dart';
 import 'package:glucomi/features/curation/curation_models.dart';
@@ -10,8 +11,8 @@ import 'package:glucomi/features/home/home_loader.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
 import 'package:glucomi/features/insulin/insulin_models.dart';
-import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/login/kakao_login_screen.dart';
+import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/memo/memo_models.dart';
 import 'package:glucomi/features/signup/signup_screen.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
@@ -21,10 +22,14 @@ import 'package:glucomi/features/weight/weight_models.dart';
 /// - 로그인 토큰이 있으면 GET /api/members/me 로 가입/온보딩 상태를 보고
 ///   약관 동의 / 큐레이션 / 홈 중 알맞은 곳에서 시작
 /// - 토큰이 없으면 MO-LOGIN-010 카카오 로그인 화면부터 시작
+///   (카카오 키가 없는 빌드는 로그인 없이 약관 동의부터 시작)
 class AppStart extends StatefulWidget {
-  const AppStart({super.key, this.memberApi});
+  const AppStart({super.key, this.memberApi, this.kakaoLoginEnabled});
 
   final MemberApi? memberApi;
+
+  /// 테스트용. 없으면 [ApiConfig.kakaoLoginEnabled]
+  final bool? kakaoLoginEnabled;
 
   @override
   State<AppStart> createState() => _AppStartState();
@@ -58,7 +63,10 @@ class _AppStartState extends State<AppStart> {
   @override
   Widget build(BuildContext context) {
     final me = _me;
-    if (me == null) return const KakaoLoginScreen();
+    if (me == null) {
+      final kakao = widget.kakaoLoginEnabled ?? ApiConfig.kakaoLoginEnabled;
+      return kakao ? const KakaoLoginScreen() : const SignupFlow();
+    }
 
     return FutureBuilder<MemberInfo>(
       future: me,
