@@ -50,6 +50,7 @@ class DrugRecord {
     this.id,
     required this.time,
     required this.type,
+    this.memberMedicationId,
     this.productName,
     this.memo,
   });
@@ -60,6 +61,7 @@ class DrugRecord {
   /// 복용 일시 (날짜 + 시간)
   final DateTime time;
   final DrugType type;
+  final String? memberMedicationId;
   final String? productName;
   final String? memo;
 
@@ -73,6 +75,7 @@ class DrugRecord {
     id: id ?? this.id,
     time: time,
     type: type,
+    memberMedicationId: memberMedicationId,
     productName: productName,
     memo: memo,
   );
@@ -83,11 +86,13 @@ class DrugRecord {
       other.id == id &&
       other.time == time &&
       other.type == type &&
+      other.memberMedicationId == memberMedicationId &&
       other.productName == productName &&
       other.memo == memo;
 
   @override
-  int get hashCode => Object.hash(id, time, type, productName, memo);
+  int get hashCode =>
+      Object.hash(id, time, type, memberMedicationId, productName, memo);
 }
 
 /// 복약 화면을 닫을 때 돌려주는 결과 (닫기·변경 없는 수정은 null)
@@ -107,10 +112,7 @@ abstract class DrugRepository {
   Future<List<SavedDrug>> savedDrugs();
 
   /// 내 복용약 등록. 같은 약 종류·제품명이 있어도 별도 처리 없이 추가
-  Future<SavedDrug> addSavedDrug({
-    required DrugType type,
-    String? productName,
-  });
+  Future<SavedDrug> addSavedDrug({required DrugType type, String? productName});
 
   Future<void> deleteSavedDrug(String id);
 

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/insulin/insulin_register_screen.dart';
 import 'package:glucomi/features/insulin/widgets/insulin_fields.dart';
 import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 import 'package:glucomi/shared/widgets/record/saved_item_card.dart';
 
@@ -33,9 +35,13 @@ class _MyInsulinScreenState extends State<MyInsulinScreen> {
   }
 
   Future<void> _load() async {
-    final list = await widget.repository.myInsulins();
-    if (!mounted) return;
-    setState(() => _insulins = list);
+    try {
+      final list = await widget.repository.myInsulins();
+      if (!mounted) return;
+      setState(() => _insulins = list);
+    } catch (e) {
+      _showError(e, '내 인슐린을 불러오지 못했어요.');
+    }
   }
 
   Future<void> _add() async {
@@ -58,9 +64,20 @@ class _MyInsulinScreenState extends State<MyInsulinScreen> {
     try {
       await widget.repository.deleteMyInsulin(insulin.id);
       await _load();
+    } catch (e) {
+      _showError(e, '인슐린을 삭제하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error is ApiException ? error.message : fallback,
+      type: AppToastType.error,
+    );
   }
 
   @override

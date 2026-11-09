@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/exercise/exercise_models.dart';
 import 'package:glucomi/features/exercise/widgets/exercise_option_tile.dart';
 import 'package:glucomi/features/meal/widgets/meal_search_bar.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 /// MO-EXERCISE-020 운동 추가
@@ -47,11 +49,17 @@ class _ExerciseAddScreenState extends State<ExerciseAddScreen> {
 
   Future<void> _load() async {
     final repo = widget.repository;
-    final results = await Future.wait([
-      repo.recent(),
-      repo.popular(),
-      repo.catalog(),
-    ]);
+    final List<List<Exercise>> results;
+    try {
+      results = await Future.wait([
+        repo.recent(),
+        repo.popular(),
+        repo.catalog(),
+      ]);
+    } catch (e) {
+      _showError(e, '운동 목록을 불러오지 못했어요.');
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _recent = results[0];
@@ -68,7 +76,13 @@ class _ExerciseAddScreenState extends State<ExerciseAddScreen> {
       _reset();
       return;
     }
-    final results = await widget.repository.search(q);
+    final List<Exercise> results;
+    try {
+      results = await widget.repository.search(q);
+    } catch (e) {
+      _showError(e, '운동을 검색하지 못했어요.');
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _query = q;
@@ -91,6 +105,15 @@ class _ExerciseAddScreenState extends State<ExerciseAddScreen> {
 
   /// 탭 시 선택 (선택 해제 없음)
   void _select(Exercise e) => setState(() => _selected = e);
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error is ApiException ? error.message : fallback,
+      type: AppToastType.error,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +163,12 @@ class _ExerciseAddScreenState extends State<ExerciseAddScreen> {
 
   Widget _buildBody() {
     if (!_loaded) return const SizedBox.shrink();
-    const padding = EdgeInsets.fromLTRB(18, AppSpacing.spacing3, 20, AppSpacing.spacing6);
+    const padding = EdgeInsets.fromLTRB(
+      18,
+      AppSpacing.spacing3,
+      20,
+      AppSpacing.spacing6,
+    );
 
     if (_query != null) {
       if (_results.isEmpty) {

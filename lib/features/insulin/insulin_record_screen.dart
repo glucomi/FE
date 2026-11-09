@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/insulin/insulin_register_screen.dart';
@@ -10,6 +11,7 @@ import 'package:glucomi/features/weight/widgets/weight_date_sheet.dart';
 import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 import 'package:glucomi/shared/widgets/record/record_field_label.dart';
 import 'package:glucomi/shared/widgets/record/record_memo_field.dart';
@@ -116,7 +118,13 @@ class _InsulinRecordScreenState extends State<InsulinRecordScreen> {
   /// COM-POP-06. 열 때마다 내 인슐린을 새로 불러옴 (030 에서 지우거나 추가한 내용 반영)
   Future<void> _openSelectSheet() async {
     FocusScope.of(context).unfocus();
-    final insulins = await widget.repository.myInsulins();
+    final List<MyInsulin> insulins;
+    try {
+      insulins = await widget.repository.myInsulins();
+    } catch (e) {
+      _showError(e, '내 인슐린을 불러오지 못했어요.');
+      return;
+    }
     if (!mounted) return;
     final result = await showInsulinSelectSheet(
       context,
@@ -175,6 +183,7 @@ class _InsulinRecordScreenState extends State<InsulinRecordScreen> {
       product: product,
       dose: dose,
       memo: _memoController.text.trim(),
+      memberInsulinId: _myInsulinId ?? widget.record?.memberInsulinId,
     );
 
     // 수정: 바뀐 내용 없음 → 저장 호출 없이 진입 화면(홈)으로 복귀
@@ -189,6 +198,8 @@ class _InsulinRecordScreenState extends State<InsulinRecordScreen> {
       if (mounted) {
         Navigator.of(context).pop(InsulinRecordResult.saved(saved));
       }
+    } catch (e) {
+      _showError(e, '인슐린 기록을 저장하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -206,9 +217,20 @@ class _InsulinRecordScreenState extends State<InsulinRecordScreen> {
       if (mounted) {
         Navigator.of(context).pop(const InsulinRecordResult.deleted());
       }
+    } catch (e) {
+      _showError(e, '인슐린 기록을 삭제하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error is ApiException ? error.message : fallback,
+      type: AppToastType.error,
+    );
   }
 
   @override

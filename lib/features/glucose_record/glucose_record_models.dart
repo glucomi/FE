@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 
 /// MO-GLUCOSER-010 입력 규칙
 ///
-/// 정책서(GLUCOSER-010)에 기능설명이 비어 있어서 범위·단위는 임시값 — 확인 필요
+/// MO-GLUCOSER-010 와이어프레임&정책서: 10~300 mg/dL, 정수
 abstract final class GlucosePolicy {
   /// 저장 가능한 범위 (mg/dL, 정수)
-  static const int minMgDl = 20;
-  static const int maxMgDl = 600;
+  static const int minMgDl = 10;
+  static const int maxMgDl = 300;
 
   /// 정수부 최대 자릿수
   static const int maxDigits = 3;
@@ -23,7 +23,7 @@ abstract final class GlucosePolicy {
 ///
 /// - 숫자만, 정수만 (소수점 차단)
 /// - 선행 0 정리 ("012" → "12", "0" → 빈 값)
-/// - 3자리 / 최대값(600) 초과 입력은 막아서 직전 값 유지
+/// - 최대 3자리 입력; 10~300 범위 위반은 키보드 종료 시 안내 후 초기화
 class GlucoseValueInputFormatter extends TextInputFormatter {
   const GlucoseValueInputFormatter();
 
@@ -34,8 +34,7 @@ class GlucoseValueInputFormatter extends TextInputFormatter {
   ) {
     final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     final trimmed = digits.replaceFirst(RegExp(r'^0+'), '');
-    if (trimmed.length > GlucosePolicy.maxDigits ||
-        (trimmed.isNotEmpty && int.parse(trimmed) > GlucosePolicy.maxMgDl)) {
+    if (trimmed.length > GlucosePolicy.maxDigits) {
       return oldValue;
     }
     if (trimmed == newValue.text) return newValue;

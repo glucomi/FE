@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "if [ ! -d .flutter-sdk ]; then git clone --depth 1 -b stable https://github.com/flutter/flutter.git .flutter-sdk; fi && .flutter-sdk/bin/flutter --version && .flutter-sdk/bin/flutter pub get",
-  "buildCommand": ".flutter-sdk/bin/flutter build web --release",
+  "buildCommand": ".flutter-sdk/bin/flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL:-https://54-116-228-101.sslip.io} --dart-define=KAKAO_REST_API_KEY=$KAKAO_REST_API_KEY --dart-define=KAKAO_JAVASCRIPT_KEY=$KAKAO_JAVASCRIPT_KEY --dart-define=KAKAO_REDIRECT_URI=${KAKAO_REDIRECT_URI:-https://ddadang.vercel.app/}",
   "outputDirectory": "build/web"
 }

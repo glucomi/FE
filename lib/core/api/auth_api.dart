@@ -26,14 +26,12 @@ class AuthApi {
 
   /// 카카오 SDK 로 받은 카카오 access token 으로 로그인/가입 후 토큰 저장
   Future<LoginResult> loginWithKakao(String kakaoAccessToken) async {
-    final json =
-        await _client.post(
-              '/api/auth/kakao',
-              body: {'kakaoAccessToken': kakaoAccessToken},
-              auth: false,
-            )
-            as Map<String, dynamic>;
-    _client.session.save(
+    final json = await _client.post(
+      '/api/auth/kakao',
+      body: {'kakaoAccessToken': kakaoAccessToken},
+      auth: false,
+    ) as Map<String, dynamic>;
+    await _client.session.save(
       accessToken: json['accessToken'] as String,
       refreshToken: json['refreshToken'] as String?,
     );
@@ -45,5 +43,28 @@ class AuthApi {
     );
   }
 
-  void logout() => _client.session.clear();
+  /// Web OAuth: BE securely exchanges Kakao authorization code for Kakao token,
+  /// then performs the same member lookup / JWT issuance as native login.
+  Future<LoginResult> loginWithKakaoCode({
+    required String authorizationCode,
+    required String redirectUri,
+  }) async {
+    final json = await _client.post(
+      '/api/auth/kakao/code',
+      auth: false,
+      body: {'code': authorizationCode, 'redirectUri': redirectUri},
+    ) as Map<String, dynamic>;
+    await _client.session.save(
+      accessToken: json['accessToken'] as String,
+      refreshToken: json['refreshToken'] as String?,
+    );
+    return LoginResult(
+      memberId: asInt(json['memberId']) ?? 0,
+      isNewMember: json['isNewMember'] == true,
+      signupCompleted: json['signupCompleted'] == true,
+      onboardingCompleted: json['onboardingCompleted'] == true,
+    );
+  }
+
+  Future<void> logout() => _client.session.clear();
 }

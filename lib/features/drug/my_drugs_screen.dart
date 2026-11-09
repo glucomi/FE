@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/drug/drug_register_screen.dart';
 import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 import 'package:glucomi/shared/widgets/record/record_sheets.dart';
 import 'package:glucomi/shared/widgets/record/saved_item_card.dart';
@@ -32,8 +34,12 @@ class _MyDrugsScreenState extends State<MyDrugsScreen> {
   }
 
   Future<void> _load() async {
-    final drugs = await widget.repository.savedDrugs();
-    if (mounted) setState(() => _drugs = drugs);
+    try {
+      final drugs = await widget.repository.savedDrugs();
+      if (mounted) setState(() => _drugs = drugs);
+    } catch (e) {
+      _showError(e, '내 복용약을 불러오지 못했어요.');
+    }
   }
 
   Future<void> _add() async {
@@ -48,8 +54,22 @@ class _MyDrugsScreenState extends State<MyDrugsScreen> {
   Future<void> _delete(SavedDrug drug) async {
     final confirmed = await showDeleteConfirmDialog(context);
     if (!confirmed || !mounted) return;
-    await widget.repository.deleteSavedDrug(drug.id);
+    try {
+      await widget.repository.deleteSavedDrug(drug.id);
+    } catch (e) {
+      _showError(e, '복용약을 삭제하지 못했어요.');
+      return;
+    }
     await _load();
+  }
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error is ApiException ? error.message : fallback,
+      type: AppToastType.error,
+    );
   }
 
   @override

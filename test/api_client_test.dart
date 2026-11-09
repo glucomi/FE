@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:glucomi/core/api/api_client.dart';
 import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/core/api/auth_session.dart';
@@ -22,16 +23,26 @@ Map<String, Object?> _ok(Object? result) => {
 };
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  // Replace native secure-storage channels with the package's test-only store.
+  FlutterSecureStorage.setMockInitialValues(<String, String>{});
   final session = AuthSession.instance;
 
-  tearDown(session.clear);
+  tearDown(() async {
+    await session.clear();
+  });
 
   test('성공 응답에서 result 만 꺼냄', () async {
     final client = ApiClient(
       baseUrl: 'https://api.test',
       httpClient: MockClient((request) async {
         expect(request.url.path, '/api/terms');
-        return _json(200, _ok([{'termsType': 'SERVICE'}]));
+        return _json(
+          200,
+          _ok([
+            {'termsType': 'SERVICE'},
+          ]),
+        );
       }),
     );
 
@@ -66,7 +77,7 @@ void main() {
   });
 
   test('401 이면 토큰 재발급 후 다시 요청', () async {
-    session.save(accessToken: 'old', refreshToken: 'refresh-1');
+    await session.save(accessToken: 'old', refreshToken: 'refresh-1');
     final calls = <String>[];
 
     final client = ApiClient(
@@ -105,7 +116,7 @@ void main() {
   });
 
   test('홈 응답을 HomeData 로 바꿈', () async {
-    session.save(accessToken: 'token');
+    await session.save(accessToken: 'token');
     final client = ApiClient(
       baseUrl: 'https://api.test',
       httpClient: MockClient((request) async {
@@ -114,7 +125,11 @@ void main() {
           200,
           _ok({
             'date': '2026-10-26',
-            'sensor': {'connected': true, 'provider': 'CARESENS_AIR', 'sensorDay': 3},
+            'sensor': {
+              'connected': true,
+              'provider': 'CARESENS_AIR',
+              'sensorDay': 3,
+            },
             'targetRange': {'min': 70, 'max': 180},
             'graph': {
               'points': [

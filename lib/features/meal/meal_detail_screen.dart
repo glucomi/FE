@@ -200,9 +200,19 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
           main: _ValueRow(label: '탄수화물', value: e.carbs, unit: 'g'),
           subs: [
             // ③ 탄수화물(당) — 값이 없으면 '-'
-            _ValueRow(label: '당류', value: e.scaled(f.sugar), unit: 'g', sub: true),
+            _ValueRow(
+              label: '당류',
+              value: e.scaled(f.sugar),
+              unit: 'g',
+              sub: true,
+            ),
             if (f.fiber != null)
-              _ValueRow(label: '식이섬유', value: e.scaled(f.fiber)!, unit: 'g', sub: true),
+              _ValueRow(
+                label: '식이섬유',
+                value: e.scaled(f.fiber)!,
+                unit: 'g',
+                sub: true,
+              ),
           ],
         ),
         _NutrientCard(
@@ -212,17 +222,41 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
           main: _ValueRow(label: '지방', value: e.fat, unit: 'g'),
           subs: [
             // ③ 지방(포화·트랜스) — 값이 없으면 '-'
-            _ValueRow(label: '포화지방', value: e.scaled(f.saturatedFat), unit: 'g', sub: true),
-            _ValueRow(label: '트랜스지방', value: e.scaled(f.transFat), unit: 'g', sub: true),
+            _ValueRow(
+              label: '포화지방',
+              value: e.scaled(f.saturatedFat),
+              unit: 'g',
+              sub: true,
+            ),
+            _ValueRow(
+              label: '트랜스지방',
+              value: e.scaled(f.transFat),
+              unit: 'g',
+              sub: true,
+            ),
             if (f.fattyAcid != null)
-              _ValueRow(label: '지방산', value: e.scaled(f.fattyAcid)!, unit: 'g', sub: true),
+              _ValueRow(
+                label: '지방산',
+                value: e.scaled(f.fattyAcid)!,
+                unit: 'g',
+                sub: true,
+              ),
             if (f.unsaturatedFat != null)
-              _ValueRow(label: '불포화지방산', value: e.scaled(f.unsaturatedFat)!, unit: 'g', sub: true),
+              _ValueRow(
+                label: '불포화지방산',
+                value: e.scaled(f.unsaturatedFat)!,
+                unit: 'g',
+                sub: true,
+              ),
           ],
         ),
         if (f.cholesterol != null)
           _NutrientCard(
-            main: _ValueRow(label: '콜레스테롤', value: e.scaled(f.cholesterol)!, unit: 'mg'),
+            main: _ValueRow(
+              label: '콜레스테롤',
+              value: e.scaled(f.cholesterol)!,
+              unit: 'mg',
+            ),
           ),
         _NutrientCard(
           main: _ValueRow(label: '나트륨', value: e.scaled(f.sodium), unit: 'mg'),
@@ -230,7 +264,11 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         ),
         if (f.caffeine != null)
           _NutrientCard(
-            main: _ValueRow(label: '카페인', value: e.scaled(f.caffeine)!, unit: 'mg'),
+            main: _ValueRow(
+              label: '카페인',
+              value: e.scaled(f.caffeine)!,
+              unit: 'mg',
+            ),
             last: true,
           ),
       ],
@@ -315,7 +353,8 @@ class _ValueRow extends StatelessWidget {
           Expanded(child: Text(label, style: labelStyle)),
           Text(
             value == null ? '-' : formatNutrient(value!),
-            key: keyName == null ? null : ValueKey(keyName),
+            // String? 그대로 넘기면 ValueKey<String?> 가 되어 ValueKey<String> 과 다른 키가 됨
+            key: keyName == null ? null : ValueKey<String>(keyName!),
             style: valueStyle,
           ),
           const SizedBox(width: AppSpacing.spacing1),
@@ -373,9 +412,24 @@ class _MacroRatioBar extends StatelessWidget {
   Widget build(BuildContext context) {
     // 열량 기준 비율 (탄수화물·단백질 4kcal/g, 지방 9kcal/g)
     final parts = [
-      (label: '탄수화물', grams: entry.carbs, kcal: entry.carbs * 4, color: AppColors.dataCarb),
-      (label: '단백질', grams: entry.protein, kcal: entry.protein * 4, color: AppColors.dataProtein),
-      (label: '지방', grams: entry.fat, kcal: entry.fat * 9, color: AppColors.dataFat),
+      (
+        label: '탄수화물',
+        grams: entry.carbs,
+        kcal: entry.carbs * 4,
+        color: AppColors.dataCarb,
+      ),
+      (
+        label: '단백질',
+        grams: entry.protein,
+        kcal: entry.protein * 4,
+        color: AppColors.dataProtein,
+      ),
+      (
+        label: '지방',
+        grams: entry.fat,
+        kcal: entry.fat * 9,
+        color: AppColors.dataFat,
+      ),
     ];
     final total = parts.fold<double>(0, (sum, p) => sum + p.kcal);
     final percents = [

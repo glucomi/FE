@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/drug/drug_register_screen.dart';
@@ -8,6 +9,7 @@ import 'package:glucomi/features/weight/widgets/weight_date_sheet.dart';
 import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 import 'package:glucomi/shared/widgets/record/record_field_label.dart';
 import 'package:glucomi/shared/widgets/record/record_memo_field.dart';
@@ -52,6 +54,7 @@ class _DrugRecordScreenState extends State<DrugRecordScreen> {
   late DateTime _date = _dayOf(widget.record?.time ?? _now);
   late TimeOfDay _time = TimeOfDay.fromDateTime(widget.record?.time ?? _now);
   late DrugType? _type = widget.record?.type;
+  late String? _memberMedicationId = widget.record?.memberMedicationId;
   late final _productController = TextEditingController(
     text: widget.record?.productName ?? '',
   );
@@ -93,7 +96,13 @@ class _DrugRecordScreenState extends State<DrugRecordScreen> {
 
   /// 약 종류 선택 → COM-POP-07. 새 복용약을 등록하고 오면 시트를 다시 띄움
   Future<void> _pickDrug({String? preselectId}) async {
-    final drugs = await widget.repository.savedDrugs();
+    final List<SavedDrug> drugs;
+    try {
+      drugs = await widget.repository.savedDrugs();
+    } catch (e) {
+      _showError(e, '내 복용약을 불러오지 못했어요.');
+      return;
+    }
     if (!mounted) return;
     final preselect = preselectId == null
         ? null
@@ -123,6 +132,7 @@ class _DrugRecordScreenState extends State<DrugRecordScreen> {
     final drug = drugs[result.index!];
     setState(() {
       _type = drug.type;
+      _memberMedicationId = drug.id;
       _productController.text = drug.productName ?? '';
     });
   }
@@ -159,6 +169,7 @@ class _DrugRecordScreenState extends State<DrugRecordScreen> {
         _time.minute,
       ),
       type: type,
+      memberMedicationId: _memberMedicationId,
       productName: clean(_productController.text),
       memo: clean(_memoController.text),
     );
@@ -178,6 +189,8 @@ class _DrugRecordScreenState extends State<DrugRecordScreen> {
     try {
       final saved = await widget.repository.saveRecord(record);
       if (mounted) Navigator.of(context).pop(DrugRecordResult.saved(saved));
+    } catch (e) {
+      _showError(e, '복약 기록을 저장하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -193,9 +206,20 @@ class _DrugRecordScreenState extends State<DrugRecordScreen> {
     try {
       await widget.repository.deleteRecord(id);
       if (mounted) Navigator.of(context).pop(const DrugRecordResult.deleted());
+    } catch (e) {
+      _showError(e, '복약 기록을 삭제하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error is ApiException ? error.message : fallback,
+      type: AppToastType.error,
+    );
   }
 
   @override

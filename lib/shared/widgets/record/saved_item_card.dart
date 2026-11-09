@@ -19,28 +19,23 @@ class SavedItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 카드 여백을 Stack 안쪽으로 넣어서 X 버튼 전체가 터치 영역 안에 들어오게 함
+    // (여백 밖에 걸쳐 있으면 버튼 오른쪽 절반이 눌리지 않음)
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.spacing4,
-        AppSpacing.spacing3,
-        AppSpacing.spacing4,
-        AppSpacing.spacing4,
-      ),
       decoration: BoxDecoration(
         color: AppColors.neutralsBackground,
         border: Border.all(color: AppColors.borderDefault),
         borderRadius: BorderRadius.circular(AppRadius.radiusSm),
       ),
       child: Stack(
-        clipBehavior: Clip.none,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.spacing1,
-              AppSpacing.spacing1,
-              AppSpacing.spacing8,
-              AppSpacing.spacing1,
+              AppSpacing.spacing4 + AppSpacing.spacing1,
+              AppSpacing.spacing3 + AppSpacing.spacing1,
+              AppSpacing.spacing4 + AppSpacing.spacing8,
+              AppSpacing.spacing4 + AppSpacing.spacing1,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,8 +57,8 @@ class SavedItemCard extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: -4,
-            right: -16,
+            top: AppSpacing.spacing3 - 4,
+            right: AppSpacing.spacing4 - 16,
             child: Semantics(
               button: true,
               label: '$title 삭제',

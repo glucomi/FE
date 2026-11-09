@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/meal/meal_models.dart';
+import 'package:glucomi/features/meal/meal_detail_screen.dart';
 import 'package:glucomi/features/meal/meal_record_screen.dart';
 
 void main() {
@@ -48,7 +49,10 @@ void main() {
   testWidgets('검색하면 결과와 직접 등록 안내, 지우면 탭으로 돌아감', (tester) async {
     await mount(tester, SampleMealFoodRepository());
 
-    await tester.enterText(find.byKey(const ValueKey('meal-search-field')), '밥');
+    await tester.enterText(
+      find.byKey(const ValueKey('meal-search-field')),
+      '밥',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
 
@@ -142,13 +146,30 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('meal-detail-amount-inc')));
     await tester.pump();
+    // Nutrition values are in a lazily built ListView: scroll them into view.
+    final detailScrollable = find
+        .descendant(
+          of: find.byType(MealDetailScreen),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('meal-detail-kcal')),
+      160,
+      scrollable: detailScrollable,
+    );
     expect(find.byKey(const ValueKey('meal-detail-kcal')), findsOneWidget);
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('meal-detail-kcal'))).data,
       '130',
     );
 
-    // 단위는 탭할 때마다 순환 (g → 인분)
+    // 단위 선택은 상단에 있으므로 다시 위로 스크롤한 뒤 조작한다.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('meal-detail-unit-select')),
+      -160,
+      scrollable: detailScrollable,
+    );
     await tester.tap(find.byKey(const ValueKey('meal-detail-unit-select')));
     await tester.pump();
     expect(find.text('인분'), findsOneWidget);
@@ -192,7 +213,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('직접 등록'), findsWidgets);
 
-    await tester.enterText(find.byKey(const ValueKey('meal-register-name')).last, '닭가슴살볼');
+    await tester.enterText(
+      find.byKey(const ValueKey('meal-register-name')).last,
+      '닭가슴살볼',
+    );
     await tester.pump();
     await tester.tap(find.text('저장하기'));
     await tester.pumpAndSettle();
@@ -232,7 +256,11 @@ void main() {
       carbs: 40,
     );
     const half = MealEntry(food: food, amount: 100);
-    const twoServings = MealEntry(food: food, amount: 2, unit: MealUnit.serving);
+    const twoServings = MealEntry(
+      food: food,
+      amount: 2,
+      unit: MealUnit.serving,
+    );
 
     expect(half.kcal, 150);
     expect(half.carbs, 20);

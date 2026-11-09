@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
+import 'package:glucomi/features/exercise/exercise_models.dart';
 import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/memo/memo_models.dart';
+import 'package:glucomi/features/weight/weight_models.dart';
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -50,6 +52,7 @@ class DailyRecord {
     this.insulinRecord,
     this.glucose,
     this.memo,
+    this.exercise,
   });
 
   /// 메모 기록 카드 (내용이 없고 사진만 있으면 '사진 n장')
@@ -92,6 +95,27 @@ class DailyRecord {
 
   /// 메모 기록 (메모 화면 (c) 등록후 진입에 사용)
   final MemoRecord? memo;
+
+  /// 운동 기록 (운동 화면 (c) 등록후 진입에 사용)
+  final ExerciseRecord? exercise;
+
+  /// 운동 기록 → 오늘의 기록 카드 (운동명 / 시간 · 칼로리)
+  factory DailyRecord.fromExercise(ExerciseRecord record) => DailyRecord(
+    time: record.time,
+    type: DailyRecordType.exercise,
+    title: record.title,
+    details: ['${record.totalMinutes}분', '${record.totalKcal} kcal'],
+    exercise: record,
+  );
+
+  /// 체중 기록 → 오늘의 기록 카드
+  factory DailyRecord.fromWeight(WeightRecord record, {DateTime? time}) =>
+      DailyRecord(
+        time: time ?? record.date,
+        type: DailyRecordType.weight,
+        title: '${record.kg.toStringAsFixed(1)} kg',
+        weightKg: record.kg,
+      );
 
   /// 인슐린 기록 → 오늘의 기록 카드 (제품명 / 분류 · 투여량)
   factory DailyRecord.insulin(InsulinRecord record) => DailyRecord(
@@ -174,10 +198,7 @@ class HomeData {
 
   /// 달력에 표시할 점수 (오늘은 현재 데이터로 계산한 점수)
   Map<DateTime, int> get calendarScores {
-    return {
-      ...dailyScores,
-      DateTime(date.year, date.month, date.day): ?score,
-    };
+    return {...dailyScores, DateTime(date.year, date.month, date.day): ?score};
   }
 
   /// 기록을 덧붙인 새 데이터 (시간순 정렬)
@@ -267,10 +288,25 @@ class HomeData {
 
     // 그래프 테스트 화면(GraphTestScreen)과 같은 측정값
     const samples = <(int, int, double)>[
-      (8, 30, 128), (8, 45, 115), (9, 0, 118), (9, 15, 92), (9, 35, 94),
-      (9, 50, 78), (10, 5, 82), (10, 20, 76), (10, 40, 110), (10, 55, 175),
-      (11, 10, 133), (11, 30, 122), (11, 50, 108), (12, 5, 142), (12, 20, 146),
-      (12, 35, 125), (12, 55, 105), (13, 10, 98), (13, 25, 113),
+      (8, 30, 128),
+      (8, 45, 115),
+      (9, 0, 118),
+      (9, 15, 92),
+      (9, 35, 94),
+      (9, 50, 78),
+      (10, 5, 82),
+      (10, 20, 76),
+      (10, 40, 110),
+      (10, 55, 175),
+      (11, 10, 133),
+      (11, 30, 122),
+      (11, 50, 108),
+      (12, 5, 142),
+      (12, 20, 146),
+      (12, 35, 125),
+      (12, 55, 105),
+      (13, 10, 98),
+      (13, 25, 113),
     ];
     final points = [
       for (final (h, m, v) in samples) CgmPoint(time: at(h, m), value: v),
@@ -278,8 +314,23 @@ class HomeData {
 
     // 며칠 전 → 점수 (비어 있는 날은 기록 없음)
     const pastScores = {
-      1: 72, 2: 68, 3: 56, 4: 45, 5: 70, 6: 74, 8: 54, 9: 90, 10: 50,
-      11: 72, 12: 68, 15: 70, 16: 56, 17: 74, 18: 72, 20: 48, 22: 66,
+      1: 72,
+      2: 68,
+      3: 56,
+      4: 45,
+      5: 70,
+      6: 74,
+      8: 54,
+      9: 90,
+      10: 50,
+      11: 72,
+      12: 68,
+      15: 70,
+      16: 56,
+      17: 74,
+      18: 72,
+      20: 48,
+      22: 66,
     };
 
     return HomeData(

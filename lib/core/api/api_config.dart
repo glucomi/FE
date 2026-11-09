@@ -17,5 +17,19 @@ abstract final class ApiConfig {
     'DEV_REFRESH_TOKEN',
   );
 
+  // Kakao native app key is a public app identifier (not the client secret).
+  static const String kakaoNativeAppKey = String.fromEnvironment(
+    'KAKAO_NATIVE_APP_KEY',
+  );
+  static const String kakaoJavaScriptKey = String.fromEnvironment(
+    'KAKAO_JAVASCRIPT_KEY',
+  );
+  static const String kakaoRestApiKey = String.fromEnvironment(
+    'KAKAO_REST_API_KEY',
+  );
+  static const String kakaoRedirectUri = String.fromEnvironment(
+    'KAKAO_REDIRECT_URI',
+  );
+
   static const Duration timeout = Duration(seconds: 15);
 }

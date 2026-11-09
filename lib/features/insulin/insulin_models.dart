@@ -18,10 +18,13 @@ enum InsulinCategory {
 /// 인슐린 제품 (제품명 + 분류)
 @immutable
 class InsulinProduct {
-  const InsulinProduct(this.name, this.category);
+  const InsulinProduct(this.name, this.category, {this.id});
 
   final String name;
   final InsulinCategory category;
+
+  /// 서버 제품 id (서버 목록에서 받은 제품만 있음, 비교에는 쓰지 않음)
+  final String? id;
 
   /// 레버미어플렉스펜주 (장기형)
   String get displayName => '$name (${category.label})';
@@ -69,11 +72,17 @@ abstract final class InsulinCatalog {
   ];
 
   /// 분류 순서대로 묶은 목록 (제품이 없는 분류는 빠짐)
-  static Map<InsulinCategory, List<InsulinProduct>> get byCategory => {
+  static Map<InsulinCategory, List<InsulinProduct>> get byCategory =>
+      group(products);
+
+  /// 분류 순서대로 묶기 (제품이 없는 분류는 빠짐)
+  static Map<InsulinCategory, List<InsulinProduct>> group(
+    List<InsulinProduct> list,
+  ) => {
     for (final category in InsulinCategory.values)
-      if (products.any((p) => p.category == category))
+      if (list.any((p) => p.category == category))
         category: [
-          for (final p in products)
+          for (final p in list)
             if (p.category == category) p,
         ],
   };
@@ -206,7 +215,11 @@ class InsulinRecord {
     required this.product,
     required this.dose,
     this.memo = '',
+    this.memberInsulinId,
   }) : time = DateTime(time.year, time.month, time.day, time.hour, time.minute);
+
+  /// 선택한 내 인슐린 id (서버 저장에 필요, 내용 비교에는 쓰지 않음)
+  final String? memberInsulinId;
 
   /// 저장 전이면 null
   final String? id;
@@ -225,6 +238,7 @@ class InsulinRecord {
     product: product,
     dose: dose,
     memo: memo,
+    memberInsulinId: memberInsulinId,
   );
 
   @override
@@ -268,6 +282,9 @@ class DuplicateInsulinException implements Exception {
 
 /// 인슐린 저장소 (서버 API 가 준비되면 이 인터페이스를 구현해서 교체)
 abstract class InsulinRepository {
+  /// COM-POP-08 인슐린 종류 목록
+  Future<List<InsulinProduct>> products();
+
   /// 내 인슐린 목록 (등록한 순서)
   Future<List<MyInsulin>> myInsulins();
 
@@ -317,6 +334,9 @@ class SampleInsulinRepository implements InsulinRepository {
 
   /// 저장된 기록 (테스트·미리보기 확인용)
   List<InsulinRecord> get records => List.unmodifiable(_records.values);
+
+  @override
+  Future<List<InsulinProduct>> products() async => InsulinCatalog.products;
 
   @override
   Future<List<MyInsulin>> myInsulins() async => List.unmodifiable(_myInsulins);

@@ -49,12 +49,13 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
   final _searchFocus = FocusNode();
 
   String _query = '';
+  String _typedQuery = '';
   int _tab = 0;
   List<List<MealFood>> _tabFoods = const [[], [], []];
   List<MealFood> _results = const [];
   final List<MealEntry> _cart = [];
 
-  bool get _searching => _query.isNotEmpty;
+  bool get _searching => _typedQuery.isNotEmpty;
 
   @override
   void initState() {
@@ -87,6 +88,7 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
     final query = text.trim();
     setState(() {
       _query = query;
+      _typedQuery = query;
       if (query.isEmpty) _results = const [];
     });
     if (query.isEmpty) return;
@@ -105,8 +107,12 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
   // MO-MEAL-020: 초기화 후 '즐겨찾기' 탭으로 복귀
   void _clearSearch() {
     _searchController.clear();
-    setState(() => _tab = 0);
-    _onQueryChanged('');
+    setState(() {
+      _tab = 0;
+      _query = '';
+      _typedQuery = '';
+      _results = const [];
+    });
   }
 
   MealEntry? _cartEntryFor(MealFood food) {
@@ -136,7 +142,11 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
       context,
       initial: current == null
           ? MealEntry.initial(detailed)
-          : MealEntry(food: detailed, amount: current.amount, unit: current.unit),
+          : MealEntry(
+              food: detailed,
+              amount: current.amount,
+              unit: current.unit,
+            ),
       favorite: favorite,
       onFavoriteChanged: (value) async {
         try {
@@ -194,9 +204,11 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
           // 040 에서 바꾼 수량·삭제를 장바구니에도 반영
           onEntriesChanged: (entries) {
             if (!mounted) return;
-            setState(() => _cart
-              ..clear()
-              ..addAll(entries));
+            setState(
+              () => _cart
+                ..clear()
+                ..addAll(entries),
+            );
           },
         ),
       ),
@@ -217,7 +229,7 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
       MaterialPageRoute(
         builder: (_) => MealRegisterScreen(
           repository: widget.repository,
-          initialName: _query,
+          initialName: _typedQuery,
         ),
       ),
     );
@@ -272,7 +284,12 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
                     focusNode: _searchFocus,
                     // MO-MEAL-010: 엔터(검색) 시 검색 수행, 입력을 다 지우면 탭으로 복귀
                     onChanged: (text) {
-                      if (text.trim().isEmpty) _clearSearch();
+                      final typed = text.trim();
+                      if (typed.isEmpty) {
+                        _clearSearch();
+                      } else {
+                        setState(() => _typedQuery = typed);
+                      }
                     },
                     onSubmitted: _onQueryChanged,
                     onClear: _clearSearch,
@@ -346,8 +363,9 @@ class _MealRecordScreenState extends State<MealRecordScreen> {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
-        for (final food in _results) _tile(food),
-        MealRegisterSuggestion(query: _query, onRegister: _registerFood),
+        if (_typedQuery == _query)
+          for (final food in _results) _tile(food),
+        MealRegisterSuggestion(query: _typedQuery, onRegister: _registerFood),
         const MealSearchTips(),
       ],
     );

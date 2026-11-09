@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/insulin/my_insulin_screen.dart';
@@ -54,7 +55,25 @@ class _InsulinRegisterScreenState extends State<InsulinRegisterScreen> {
 
   Future<void> _pickType() async {
     FocusScope.of(context).unfocus();
-    final picked = await showInsulinTypeSheet(context, selected: _product);
+    final List<InsulinProduct> products;
+    try {
+      products = await widget.repository.products();
+    } catch (e) {
+      if (mounted) {
+        showAppToast(
+          context,
+          e is ApiException ? e.message : '인슐린 목록을 불러오지 못했어요.',
+          type: AppToastType.error,
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final picked = await showInsulinTypeSheet(
+      context,
+      selected: _product,
+      products: products,
+    );
     if (picked == null || !mounted) return;
     setState(() => _product = picked);
   }
@@ -83,6 +102,12 @@ class _InsulinRegisterScreenState extends State<InsulinRegisterScreen> {
     } on DuplicateInsulinException {
       // COM-TOAST-02
       showAppToastOn(messenger, '이미 등록된 인슐린이에요', type: AppToastType.error);
+    } catch (e) {
+      showAppToastOn(
+        messenger,
+        e is ApiException ? e.message : '인슐린을 등록하지 못했어요.',
+        type: AppToastType.error,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
