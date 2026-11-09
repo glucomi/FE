@@ -88,7 +88,10 @@ void main() {
     final results = await open(tester, repository);
 
     await tester.enterText(find.byKey(const ValueKey('glucose-value')), '124');
-    await tester.enterText(find.byKey(const ValueKey('glucose-memo')), '식후 2시간');
+    await tester.enterText(
+      find.byKey(const ValueKey('glucose-memo')),
+      '식후 2시간',
+    );
     await tester.pump();
     expect(find.text('6/1000'), findsOneWidget);
     expect(saveEnabled(tester), isTrue);
@@ -107,11 +110,26 @@ void main() {
   testWidgets('범위 미만 값은 저장하기 비활성', (tester) async {
     await open(tester, _FakeGlucoseRepository());
 
-    await tester.enterText(find.byKey(const ValueKey('glucose-value')), '19');
+    await tester.enterText(find.byKey(const ValueKey('glucose-value')), '9');
     await tester.pump();
     expect(saveEnabled(tester), isFalse);
 
-    await tester.enterText(find.byKey(const ValueKey('glucose-value')), '20');
+    await tester.enterText(find.byKey(const ValueKey('glucose-value')), '10');
+    await tester.pump();
+    expect(saveEnabled(tester), isTrue);
+  });
+
+  testWidgets('범위 초과 수치를 입력한 뒤 키보드를 닫으면 초기화·안내', (tester) async {
+    await open(tester, _FakeGlucoseRepository());
+    final input = find.byKey(const ValueKey('glucose-value'));
+    await tester.enterText(input, '301');
+    await tester.pump();
+    expect(saveEnabled(tester), isFalse);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(find.text('301'), findsNothing);
+    expect(find.text('혈당은 10~300 mg/dL 범위로 입력해주세요'), findsOneWidget);
+    await tester.enterText(input, '300');
     await tester.pump();
     expect(saveEnabled(tester), isTrue);
   });
@@ -226,10 +244,10 @@ void main() {
       expect(apply('0', '012').text, '12');
     });
 
-    test('600 초과·4자리는 막고 직전 값 유지', () {
-      expect(apply('60', '601').text, '60');
-      expect(apply('600', '6000').text, '600');
-      expect(apply('59', '599').text, '599');
+    test('범위 밖 3자리 입력은 허용, 4자리는 차단', () {
+      expect(apply('30', '301').text, '301');
+      expect(apply('300', '3000').text, '300');
+      expect(apply('29', '299').text, '299');
     });
 
     test('숫자 외 문자 제거', () {

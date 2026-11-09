@@ -50,6 +50,7 @@ class _GlucoseRecordScreenState extends State<GlucoseRecordScreen> {
   late TimeOfDay _time;
   late final TextEditingController _valueController;
   late final TextEditingController _memoController;
+  final FocusNode _valueFocus = FocusNode();
   bool _busy = false;
 
   DateTime get _today {
@@ -73,17 +74,33 @@ class _GlucoseRecordScreenState extends State<GlucoseRecordScreen> {
     _valueController = TextEditingController(
       text: record == null ? '' : '${record.mgDl}',
     )..addListener(_onValueChanged);
+    _valueFocus.addListener(_validateValueOnBlur);
     _memoController = TextEditingController(text: record?.memo ?? '');
   }
 
   @override
   void dispose() {
+    _valueFocus.removeListener(_validateValueOnBlur);
+    _valueFocus.dispose();
     _valueController.dispose();
     _memoController.dispose();
     super.dispose();
   }
 
   void _onValueChanged() => setState(() {});
+
+  /// 정책: 범위 밖 숫자는 키보드를 닫을 때 입력을 비우고 COM-TOAST-03 안내.
+  void _validateValueOnBlur() {
+    if (_valueFocus.hasFocus || !_editing || _busy || !mounted) return;
+    if (_valueController.text.isEmpty) return;
+    if (GlucosePolicy.isValid(_mgDl)) return;
+    _valueController.clear();
+    showAppToast(
+      context,
+      '혈당은 10~300 mg/dL 범위로 입력해주세요',
+      type: AppToastType.info,
+    );
+  }
 
   void _unfocus() => FocusScope.of(context).unfocus();
 
@@ -230,6 +247,8 @@ class _GlucoseRecordScreenState extends State<GlucoseRecordScreen> {
                       const SizedBox(height: AppSpacing.spacing6),
                       GlucoseValueField(
                         controller: _valueController,
+                        focusNode: _valueFocus,
+                        onEditingComplete: _unfocus,
                         readOnly: !editable,
                       ),
                       const SizedBox(height: AppSpacing.spacing6),

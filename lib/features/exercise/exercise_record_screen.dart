@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/exercise/exercise_add_screen.dart';
 import 'package:glucomi/features/exercise/exercise_models.dart';
@@ -8,6 +9,7 @@ import 'package:glucomi/features/weight/widgets/weight_date_sheet.dart';
 import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 import 'package:glucomi/shared/widgets/record/record_field_label.dart';
 import 'package:glucomi/shared/widgets/record/record_memo_field.dart';
@@ -127,6 +129,8 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
       if (mounted) {
         Navigator.of(context).pop(ExerciseRecordResult.saved(saved));
       }
+    } catch (e) {
+      _showError(e, '운동 기록을 저장하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -144,9 +148,20 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
       if (mounted) {
         Navigator.of(context).pop(const ExerciseRecordResult.deleted());
       }
+    } catch (e) {
+      _showError(e, '운동 기록을 삭제하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error is ApiException ? error.message : fallback,
+      type: AppToastType.error,
+    );
   }
 
   @override
@@ -206,10 +221,7 @@ class _ExerciseRecordScreenState extends State<ExerciseRecordScreen> {
                       const SizedBox(height: AppSpacing.spacing6),
                       const Align(
                         alignment: Alignment.centerLeft,
-                        child: RecordFieldLabel(
-                          label: '운동 선택',
-                          required: true,
-                        ),
+                        child: RecordFieldLabel(label: '운동 선택', required: true),
                       ),
                       const SizedBox(height: AppSpacing.spacing3),
                       ..._buildEntries(editable),

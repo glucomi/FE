@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/curation/widgets/ruler_picker.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
@@ -7,6 +8,7 @@ import 'package:glucomi/features/weight/widgets/weight_date_sheet.dart';
 import 'package:glucomi/shared/widgets/app_confirm_dialog.dart';
 import 'package:glucomi/shared/widgets/app_date_field.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 
 /// MO-WEIGHT-010 체중
@@ -65,7 +67,12 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
 
   /// 직전 저장값이 있으면 해당 값으로, 없으면 기본 시작값으로 진입
   Future<void> _loadStartValue() async {
-    final last = await widget.repository.latest();
+    WeightRecord? last;
+    try {
+      last = await widget.repository.latest();
+    } catch (_) {
+      // 직전값을 못 불러와도 기본 시작값으로 입력은 가능
+    }
     if (!mounted) return;
     setState(() => _kg = last?.kg ?? WeightPolicy.defaultStartKg);
   }
@@ -99,6 +106,8 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
       // 동일 일자에 기존 기록이 있으면 최신값으로 갱신 (저장소에서 처리)
       await widget.repository.save(record);
       if (mounted) Navigator.of(context).pop(WeightRecordResult.saved(record));
+    } catch (e) {
+      _showError(e, '체중을 저장하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -116,9 +125,20 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
       if (mounted) {
         Navigator.of(context).pop(const WeightRecordResult.deleted());
       }
+    } catch (e) {
+      _showError(e, '체중 기록을 삭제하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error is ApiException ? error.message : fallback,
+      type: AppToastType.error,
+    );
   }
 
   @override
@@ -160,7 +180,9 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
                 onTap: _editing && !_busy ? _pickDate : null,
               ),
             ),
-            Expanded(child: _kg == null ? const SizedBox.shrink() : _buildRuler()),
+            Expanded(
+              child: _kg == null ? const SizedBox.shrink() : _buildRuler(),
+            ),
             if (_editing)
               BottomActionBar(
                 key: const ValueKey('weight-save'),

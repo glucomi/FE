@@ -9,10 +9,14 @@ class GlucoseValueField extends StatelessWidget {
   const GlucoseValueField({
     super.key,
     required this.controller,
+    this.focusNode,
+    this.onEditingComplete,
     this.readOnly = false,
   });
 
   final TextEditingController controller;
+  final FocusNode? focusNode;
+  final VoidCallback? onEditingComplete;
   final bool readOnly;
 
   @override
@@ -28,7 +32,7 @@ class GlucoseValueField extends StatelessWidget {
           height: 25,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: AppFieldLabel(label: '혈당값 (mg/dL)', required: true),
+            child: AppFieldLabel(label: '혈당 값(mg/dL)', required: true),
           ),
         ),
         const SizedBox(height: AppSpacing.spacing3),
@@ -44,6 +48,9 @@ class GlucoseValueField extends StatelessWidget {
           child: TextField(
             key: const ValueKey('glucose-value'),
             controller: controller,
+            focusNode: focusNode,
+            onEditingComplete: onEditingComplete,
+            onTapOutside: (_) => focusNode?.unfocus(),
             readOnly: readOnly,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,

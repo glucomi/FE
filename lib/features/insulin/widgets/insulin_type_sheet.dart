@@ -11,18 +11,23 @@ import 'package:glucomi/shared/widgets/record/record_sheets.dart';
 Future<InsulinProduct?> showInsulinTypeSheet(
   BuildContext context, {
   InsulinProduct? selected,
+  List<InsulinProduct>? products,
 }) {
   return showRecordSheet<InsulinProduct>(
     context,
-    builder: (context) => InsulinTypeSheet(selected: selected),
+    builder: (context) =>
+        InsulinTypeSheet(selected: selected, products: products),
   );
 }
 
 /// 분류 헤더 + 제품명 라디오 리스트 (단일 선택)
 class InsulinTypeSheet extends StatefulWidget {
-  const InsulinTypeSheet({super.key, this.selected});
+  const InsulinTypeSheet({super.key, this.selected, this.products});
 
   final InsulinProduct? selected;
+
+  /// 서버에서 받은 제품 목록 (없으면 기본 목록)
+  final List<InsulinProduct>? products;
 
   @override
   State<InsulinTypeSheet> createState() => _InsulinTypeSheetState();
@@ -36,7 +41,10 @@ class _InsulinTypeSheetState extends State<InsulinTypeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final groups = InsulinCatalog.byCategory;
+    final list = widget.products;
+    final groups = list == null
+        ? InsulinCatalog.byCategory
+        : InsulinCatalog.group(list);
     // 화면이 작으면 시트가 넘치지 않게 리스트를 줄임
     final listHeight = math.min(
       _listHeight,

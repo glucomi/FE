@@ -115,11 +115,10 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 연결하기로 센서를 연결한 뒤의 데이터 (서버 연동 전까지 예시 데이터)
   HomeData? _connectedData;
 
-  HomeData get _data =>
-      (_connectedData ?? widget.data).withAddedRecords(
-        _addedRecords,
-        removed: _removedRecords,
-      );
+  HomeData get _data => (_connectedData ?? widget.data).withAddedRecords(
+    _addedRecords,
+    removed: _removedRecords,
+  );
 
   Future<void> _connectSensor() async {
     if (widget.onConnectSensor != null) {
@@ -137,11 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
         targetMax: current.targetMax ?? 140,
       );
     });
-    showAppToast(
-      context,
-      '센서가 연결됐어요. (예시 데이터)',
-      type: AppToastType.success,
-    );
+    showAppToast(context, '센서가 연결됐어요. (예시 데이터)', type: AppToastType.success);
   }
 
   Future<void> _openCalendar() async {
@@ -179,9 +174,11 @@ class _HomeScreenState extends State<HomeScreen> {
       widget.onAddRecord!(type);
     } else if (type == AddRecordType.food && widget.mealRepository != null) {
       await _openMealRecord(widget.mealRepository!);
-    } else if (type == AddRecordType.weight && widget.weightRepository != null) {
+    } else if (type == AddRecordType.weight &&
+        widget.weightRepository != null) {
       await _openWeightRecord(widget.weightRepository!);
-    } else if (type == AddRecordType.medicine && widget.drugRepository != null) {
+    } else if (type == AddRecordType.medicine &&
+        widget.drugRepository != null) {
       await _openDrugRecord(widget.drugRepository!);
     } else if (type == AddRecordType.exercise &&
         widget.exerciseRepository != null) {
@@ -258,6 +255,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (result == null || !mounted) return;
+    if (widget.onRecordsChanged != null) {
+      await widget.onRecordsChanged!();
+      return;
+    }
 
     final data = _data;
     setState(() {
@@ -300,13 +301,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }) async {
     final result = await Navigator.of(context).push<DrugRecordResult>(
       MaterialPageRoute(
-        builder: (_) => DrugRecordScreen(
-          repository: repository,
-          record: existing?.drug,
-        ),
+        builder: (_) =>
+            DrugRecordScreen(repository: repository, record: existing?.drug),
       ),
     );
     if (result == null || !mounted) return;
+    if (widget.onRecordsChanged != null) {
+      await widget.onRecordsChanged!();
+      return;
+    }
 
     final data = _data;
     setState(() {
@@ -340,6 +343,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (result == null || !mounted) return;
+    if (widget.onRecordsChanged != null) {
+      await widget.onRecordsChanged!();
+      return;
+    }
 
     final data = _data;
     setState(() {
@@ -366,6 +373,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (result == null || !mounted) return;
+    if (widget.onRecordsChanged != null) {
+      await widget.onRecordsChanged!();
+      return;
+    }
 
     final data = _data;
     setState(() {
@@ -408,6 +419,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (result == null || !mounted) return;
+    if (widget.onRecordsChanged != null) {
+      await widget.onRecordsChanged!();
+      return;
+    }
 
     setState(() {
       if (existing != null) _forget(existing);
@@ -427,7 +442,9 @@ class _HomeScreenState extends State<HomeScreen> {
     ExerciseRepository repository, {
     DailyRecord? existing,
   }) async {
-    final original = existing == null ? null : _exerciseRecords[existing];
+    final original = existing == null
+        ? null
+        : existing.exercise ?? _exerciseRecords[existing];
     final now = DateTime.now();
     final data = _data;
     final result = await Navigator.of(context).push<ExerciseRecordResult>(
@@ -447,6 +464,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (result == null || !mounted) return;
+    if (widget.onRecordsChanged != null) {
+      await widget.onRecordsChanged!();
+      return;
+    }
 
     setState(() {
       if (existing != null) {
@@ -477,7 +498,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _openWeightRecord(repository, existing: record);
     } else if (record.drug != null && drugRepository != null) {
       _openDrugRecord(drugRepository, existing: record);
-    } else if (_exerciseRecords.containsKey(record) &&
+    } else if ((record.exercise != null ||
+            _exerciseRecords.containsKey(record)) &&
         exerciseRepository != null) {
       _openExerciseRecord(exerciseRepository, existing: record);
     } else if (record.insulinRecord != null && insulinRepository != null) {
@@ -527,9 +549,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Stack(
         children: [
           SingleChildScrollView(
-            physics: _chartActive
-                ? const NeverScrollableScrollPhysics()
-                : null,
+            physics: _chartActive ? const NeverScrollableScrollPhysics() : null,
             padding: const EdgeInsets.only(bottom: 72),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -651,7 +671,11 @@ class _AddRecordButton extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: AppShadows.md,
           ),
-          child: SvgPicture.asset('assets/home/plus.svg', width: 26, height: 26),
+          child: SvgPicture.asset(
+            'assets/home/plus.svg',
+            width: 26,
+            height: 26,
+          ),
         ),
       ),
     );

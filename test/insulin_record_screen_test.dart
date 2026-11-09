@@ -157,8 +157,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MyInsulinScreen), findsOneWidget);
+    // MO-INSULIN-030: {제품명} / {분류} | {투여량}
     expect(find.text('노보래피드플렉스펜주'), findsOneWidget);
-    expect(find.text('초속효성'), findsOneWidget);
+    expect(find.text('초속효성 | 1U'), findsOneWidget);
   });
 
   testWidgets('바텀시트 새 인슐린 → MO-INSULIN-020', (tester) async {
@@ -279,6 +280,9 @@ void main() {
       expect((await repository.myInsulins()).length, 4);
 
       // 같은 종류 다시 등록 → 안내 후 등록 안 함
+      // (등록 완료 토스트가 하단 버튼을 가리므로 사라질 때까지 기다림)
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('새 인슐린 추가하기'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('insulin-register-type')));
@@ -310,12 +314,14 @@ void main() {
       expect(find.text('레버미어플렉스펜주'), findsOneWidget);
       expect(find.text('장기형 | 1U'), findsOneWidget);
 
-      await tester.tap(
-        find.descendant(
-          of: find.byKey(const ValueKey('my-insulin-m1')),
-          matching: find.bySemanticsLabel('레버미어플렉스펜주 삭제'),
+      // X 버튼은 카드 오른쪽 가장자리에 걸쳐 있어서 카드 안쪽 지점을 누름
+      final deleteButton = find.descendant(
+        of: find.byKey(const ValueKey('my-insulin-m1')),
+        matching: find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == '레버미어플렉스펜주 삭제',
         ),
       );
+      await tester.tapAt(tester.getCenter(deleteButton) - const Offset(8, 0));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('confirm-delete')));
       await tester.pumpAndSettle();

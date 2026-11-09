@@ -55,9 +55,8 @@ class ApiClient {
       for (final MapEntry(:key, :value) in (query ?? const {}).entries)
         if (value != null) key: value.toString(),
     };
-    return Uri.parse(
-      '$_baseUrl$path',
-    ).replace(queryParameters: params.isEmpty ? null : params);
+    return Uri.parse('$_baseUrl$path')
+        .replace(queryParameters: params.isEmpty ? null : params);
   }
 
   Future<dynamic> _send(
@@ -142,14 +141,14 @@ class ApiClient {
           auth: false,
         );
         final map = result as Map<String, dynamic>;
-        _session.save(
+        await _session.save(
           accessToken: map['accessToken'] as String,
           refreshToken: map['refreshToken'] as String?,
         );
         return true;
       } catch (_) {
         // refresh token 도 만료 → 다시 로그인해야 함
-        _session.clear();
+        await _session.clear();
         return false;
       } finally {
         _reissuing = null;

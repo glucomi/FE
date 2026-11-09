@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:glucomi/core/api/api_exception.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/shared/widgets/app_header_bar.dart';
+import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:glucomi/shared/widgets/bottom_action_bar.dart';
 import 'package:glucomi/shared/widgets/record/record_select_field.dart';
 import 'package:glucomi/shared/widgets/record/record_sheets.dart';
@@ -60,9 +62,20 @@ class _DrugRegisterScreenState extends State<DrugRegisterScreen> {
         productName: _productController.text,
       );
       if (mounted) Navigator.of(context).pop(drug);
+    } catch (e) {
+      _showError(e, '복용약을 등록하지 못했어요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showError(Object error, String fallback) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error is ApiException ? error.message : fallback,
+      type: AppToastType.error,
+    );
   }
 
   @override
@@ -73,10 +86,7 @@ class _DrugRegisterScreenState extends State<DrugRegisterScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            AppHeaderBar(
-              title: '복용약 등록하기',
-              onBack: _busy ? null : _back,
-            ),
+            AppHeaderBar(title: '복용약 등록하기', onBack: _busy ? null : _back),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.spacing4),

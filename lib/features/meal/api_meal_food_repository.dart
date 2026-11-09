@@ -36,10 +36,8 @@ class ApiMealFoodRepository implements MealFoodRepository {
 
   /// MO-MEAL-010: 최근 먹은 음식 최대 30개
   @override
-  Future<List<MealFood>> recent() => _page('/api/foods/recent', {
-    'page': 0,
-    'size': MealPolicy.listMaxCount,
-  });
+  Future<List<MealFood>> recent() =>
+      _page('/api/foods/recent', {'page': 0, 'size': MealPolicy.listMaxCount});
 
   /// MO-MEAL-010: 직접 등록 음식 전체
   @override
@@ -85,22 +83,20 @@ class ApiMealFoodRepository implements MealFoodRepository {
   /// MO-MEAL-050 음식 직접 등록 (영양 성분은 기준 섭취량 기준)
   @override
   Future<MealFood> createCustomFood(MealFood food) async {
-    final json =
-        await _client.post(
-              '/api/foods/custom',
-              body: {
-                'name': food.name,
-                'brand': ?food.brand,
-                'servingAmount': food.servingGram,
-                'servingUnit': food.servingUnit.toUpperCase(),
-                'nutrients': {
-                  'kcal': food.kcal,
-                  for (final MapEntry(:key, :value) in _nutrientKeys.entries)
-                    if (value(food) case final v?) key: v,
-                },
-              },
-            )
-            as Map<String, dynamic>;
+    final json = await _client.post(
+      '/api/foods/custom',
+      body: {
+        'name': food.name,
+        'brand': ?food.brand,
+        'servingAmount': food.servingGram,
+        'servingUnit': food.servingUnit.toUpperCase(),
+        'nutrients': {
+          'kcal': food.kcal,
+          for (final MapEntry(:key, :value) in _nutrientKeys.entries)
+            if (value(food) case final v?) key: v,
+        },
+      },
+    ) as Map<String, dynamic>;
     return _food(
       json,
       nutrients: json['nutrients'] as Map<String, dynamic>? ?? const {},
@@ -112,7 +108,7 @@ class ApiMealFoodRepository implements MealFoodRepository {
     'carbohydrateG': (f) => f.carbs,
     'proteinG': (f) => f.protein,
     'fatG': (f) => f.fat,
-    'sugarG': (f) => f.sugar,
+    'sugarsG': (f) => f.sugar,
     'dietaryFiberG': (f) => f.fiber,
     'saturatedFatG': (f) => f.saturatedFat,
     'transFatG': (f) => f.transFat,
@@ -169,7 +165,8 @@ class ApiMealFoodRepository implements MealFoodRepository {
 
   MealFood _summary(Map<String, dynamic> json) {
     final food = _food(json, nutrients: {'kcal': json['kcal']});
-    if (json['favorite'] is bool) _favorites[food.id] = json['favorite'] as bool;
+    if (json['favorite'] is bool)
+      _favorites[food.id] = json['favorite'] as bool;
     return food;
   }
 
@@ -192,7 +189,7 @@ class ApiMealFoodRepository implements MealFoodRepository {
       carbs: asDouble(nutrients['carbohydrateG']) ?? 0,
       protein: asDouble(nutrients['proteinG']) ?? 0,
       fat: asDouble(nutrients['fatG']) ?? 0,
-      sugar: asDouble(nutrients['sugarG']),
+      sugar: asDouble(nutrients['sugarsG']),
       fiber: asDouble(nutrients['dietaryFiberG']),
       saturatedFat: asDouble(nutrients['saturatedFatG']),
       transFat: asDouble(nutrients['transFatG']),

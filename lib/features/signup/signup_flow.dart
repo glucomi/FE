@@ -4,12 +4,15 @@ import 'package:glucomi/core/api/member_api.dart';
 import 'package:glucomi/features/curation/curation_models.dart';
 import 'package:glucomi/features/curation/curation_screen.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
+import 'package:glucomi/features/exercise/exercise_models.dart';
 import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 import 'package:glucomi/features/home/home_loader.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
 import 'package:glucomi/features/insulin/insulin_models.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
+import 'package:glucomi/features/login/kakao_login_screen.dart';
+import 'package:glucomi/features/memo/memo_models.dart';
 import 'package:glucomi/features/signup/signup_screen.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
 
@@ -17,7 +20,7 @@ import 'package:glucomi/features/weight/weight_models.dart';
 ///
 /// - 로그인 토큰이 있으면 GET /api/members/me 로 가입/온보딩 상태를 보고
 ///   약관 동의 / 큐레이션 / 홈 중 알맞은 곳에서 시작
-/// - 토큰이 없으면(카카오 로그인 연결 전) 지금처럼 예시 데이터로 흐름만 보여줌
+/// - 토큰이 없으면 MO-LOGIN-010 카카오 로그인 화면부터 시작
 class AppStart extends StatefulWidget {
   const AppStart({super.key, this.memberApi});
 
@@ -33,15 +36,29 @@ class _AppStartState extends State<AppStart> {
   @override
   void initState() {
     super.initState();
-    if (AuthSession.instance.isLoggedIn) {
-      _me = (widget.memberApi ?? MemberApi()).me();
-    }
+    AuthSession.instance.addListener(_onSessionChanged);
+    _onSessionChanged();
+  }
+
+  void _onSessionChanged() {
+    if (!mounted) return;
+    setState(
+      () => _me = AuthSession.instance.isLoggedIn
+          ? (widget.memberApi ?? MemberApi()).me()
+          : null,
+    );
+  }
+
+  @override
+  void dispose() {
+    AuthSession.instance.removeListener(_onSessionChanged);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final me = _me;
-    if (me == null) return const SignupFlow();
+    if (me == null) return const KakaoLoginScreen();
 
     return FutureBuilder<MemberInfo>(
       future: me,
@@ -52,8 +69,24 @@ class _AppStartState extends State<AppStart> {
           );
         }
         final info = snapshot.data;
-        // 내 정보를 못 불러오면(토큰 만료 등) 처음 흐름으로
-        if (info == null || !info.signupCompleted) return const SignupFlow();
+        // API failure must not be mistaken for an unsigned-up user.
+        if (snapshot.hasError || info == null) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('로그인 정보를 불러오지 못했어요.'),
+                  TextButton(
+                    onPressed: _onSessionChanged,
+                    child: const Text('다시 시도'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        if (!info.signupCompleted) return const SignupFlow();
         if (!info.onboardingCompleted) {
           return const SignupFlow(startAtCuration: true);
         }
@@ -116,7 +149,10 @@ class SignupFlow extends StatelessWidget {
 
   Widget _home(CurationResult result) {
     if (_online) {
-      return HomeLoader(targetMin: result.targetMin, targetMax: result.targetMax);
+      return HomeLoader(
+        targetMin: result.targetMin,
+        targetMax: result.targetMax,
+      );
     }
     return HomeScreen(
       data: HomeData.empty(
@@ -129,6 +165,8 @@ class SignupFlow extends StatelessWidget {
       weightRepository: SampleWeightRepository(),
       // 복약 API 가 없어서 메모리 저장소 사용
       drugRepository: SampleDrugRepository(),
+      exerciseRepository: SampleExerciseRepository(),
+      memoRepository: SampleMemoRepository(),
       // 인슐린 API 가 없어서 메모리 저장소 사용
       insulinRepository: SampleInsulinRepository(),
       // 혈당 직접 기록 API 가 없어서 메모리 저장소 사용
