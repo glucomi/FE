@@ -25,6 +25,9 @@ import 'package:glucomi/features/meal/meal_models.dart';
 import 'package:glucomi/features/meal/meal_record_screen.dart';
 import 'package:glucomi/features/memo/memo_models.dart';
 import 'package:glucomi/features/memo/memo_record_screen.dart';
+import 'package:glucomi/features/mypage/mypage_models.dart';
+import 'package:glucomi/features/mypage/mypage_screen.dart';
+import 'package:glucomi/features/signup/signup_flow.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
 import 'package:glucomi/features/weight/weight_record_screen.dart';
 import 'package:glucomi/shared/widgets/app_toast.dart';
@@ -114,6 +117,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 연결하기로 센서를 연결한 뒤의 데이터 (서버 연동 전까지 예시 데이터)
   HomeData? _connectedData;
+
+  /// 마이페이지 내 정보 (탭을 오가도 수정한 값 유지)
+  final MyPageRepository _myPageRepository = MyPageRepository();
 
   HomeData get _data => (_connectedData ?? widget.data).withAddedRecords(
     _addedRecords,
@@ -526,6 +532,40 @@ class _HomeScreenState extends State<HomeScreen> {
     showAppToast(context, '$feature 준비 중입니다.');
   }
 
+  /// MO-MYPAGE-010 — 하단 탭 전환이라 애니메이션 없이 올림
+  void _openMyPage() {
+    final data = _data;
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (context, _, _) => MyPageScreen(
+          repository: _myPageRepository,
+          sensor: SensorStatus.fromHome(
+            connected: data.sensorConnected,
+            day: data.sensorDay,
+          ),
+          onConnectSensor: _connectSensor,
+          onSelectTab: (tab) {
+            switch (tab) {
+              case HomeTab.home || HomeTab.myPage:
+                Navigator.of(context).pop();
+              case HomeTab.camera:
+                Navigator.of(context).pop();
+                _openCamera();
+              case HomeTab.farm:
+                showAppToast(context, '${tab.label} 준비 중입니다.');
+            }
+          },
+          onLoggedOut: () => Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute<void>(builder: (_) => const AppStart()),
+            (_) => false,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = _data;
@@ -541,7 +581,9 @@ class _HomeScreenState extends State<HomeScreen> {
               break;
             case HomeTab.camera:
               _openCamera();
-            case HomeTab.farm || HomeTab.myPage:
+            case HomeTab.myPage:
+              _openMyPage();
+            case HomeTab.farm:
               _notReady(tab.label);
           }
         },

@@ -36,6 +36,7 @@ flutter:
     - assets/meal/
     - assets/login/
     - assets/memo/
+    - assets/mypage/
     - assets/record/
     - assets/signup/
     - assets/terms/
