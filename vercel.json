@@ -3,5 +3,11 @@
   "framework": null,
   "installCommand": "if [ ! -d .flutter-sdk ]; then git clone --depth 1 -b stable https://github.com/flutter/flutter.git .flutter-sdk; fi && .flutter-sdk/bin/flutter --version && .flutter-sdk/bin/flutter pub get",
   "buildCommand": "bash scripts/vercel_build.sh",
-  "outputDirectory": "build/web"
+  "outputDirectory": "build/web",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

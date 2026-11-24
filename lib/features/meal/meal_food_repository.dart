@@ -17,6 +17,15 @@ abstract class MealFoodRepository {
   /// 기록하기 — 담은 음식들을 한 번에 저장
   Future<void> saveRecord(MealRecord record);
 
+  /// 식사 기록 상세 (MO-GLYCEMIC-010 — 음식별 양·영양)
+  Future<MealRecord> recordDetail(String id);
+
+  /// 식사 기록 수정 (MO-GLYCEMIC-010 수정하기 → MO-MEAL-040 저장하기)
+  Future<void> updateRecord(String id, MealRecord record);
+
+  /// 식사 기록 삭제 (MO-GLYCEMIC-010 삭제하기)
+  Future<void> deleteRecord(String id);
+
   /// MO-MEAL-050 직접 등록 (영양 성분은 기준 섭취량 기준)
   Future<MealFood> createCustomFood(MealFood food);
 }
@@ -100,6 +109,22 @@ class SampleMealFoodRepository implements MealFoodRepository {
     }
   }
 
+  final Map<String, MealRecord> _records = {};
+
+  @override
+  Future<MealRecord> recordDetail(String id) async =>
+      _records[id] ?? (throw StateError('식사 기록이 없어요.'));
+
+  @override
+  Future<void> updateRecord(String id, MealRecord record) async {
+    _records[id] = record;
+  }
+
+  @override
+  Future<void> deleteRecord(String id) async {
+    _records.remove(id);
+  }
+
   @override
   Future<MealFood> createCustomFood(MealFood food) async {
     final created = MealFood(
@@ -146,4 +171,44 @@ class SampleMealFoodRepository implements MealFoodRepository {
     MealFood(id: 'user-multigrain', name: '잡곡밥', source: MealFoodSource.user, servingGram: 100, kcal: 108, carbs: 23, protein: 3, fat: 0.5),
     MealFood(id: 'user-tuna', name: '참치', source: MealFoodSource.user, brand: '동원', servingGram: 150, kcal: 210, carbs: 0, protein: 30, fat: 10),
   ];
+}
+
+/// 수정하기에서 MO-MEAL-040 을 그대로 쓰기 위한 저장소
+///
+/// 저장하기(saveRecord)가 새 기록 대신 [recordId] 기록을 수정(PUT)함
+class MealRecordUpdateRepository implements MealFoodRepository {
+  const MealRecordUpdateRepository(this.base, this.recordId);
+
+  final MealFoodRepository base;
+  final String recordId;
+
+  @override
+  Future<void> saveRecord(MealRecord record) =>
+      base.updateRecord(recordId, record);
+
+  @override
+  Future<List<MealFood>> search(String query) => base.search(query);
+  @override
+  Future<List<MealFood>> favorites() => base.favorites();
+  @override
+  Future<List<MealFood>> recent() => base.recent();
+  @override
+  Future<List<MealFood>> userFoods() => base.userFoods();
+  @override
+  Future<bool> isFavorite(MealFood food) => base.isFavorite(food);
+  @override
+  Future<void> setFavorite(MealFood food, {required bool favorite}) =>
+      base.setFavorite(food, favorite: favorite);
+  @override
+  Future<MealFood> detail(MealFood food) => base.detail(food);
+  @override
+  Future<MealRecord> recordDetail(String id) => base.recordDetail(id);
+  @override
+  Future<void> updateRecord(String id, MealRecord record) =>
+      base.updateRecord(id, record);
+  @override
+  Future<void> deleteRecord(String id) => base.deleteRecord(id);
+  @override
+  Future<MealFood> createCustomFood(MealFood food) =>
+      base.createCustomFood(food);
 }

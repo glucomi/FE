@@ -54,3 +54,10 @@ valid redirect URI, and real authorized test account.
 - Vercel env: `KAKAO_REST_API_KEY`, `KAKAO_JAVASCRIPT_KEY`, (optional) `KAKAO_REDIRECT_URI`, `API_BASE_URL` — `vercel.json` passes them as `--dart-define`.
 - Local build upload: pass the same four values with `--dart-define`.
 - BE `.env`: see `docs/be-requests.md` #1–5.
+
+## 2026-11-23 업데이트
+
+- 리다이렉트 URI: `https://ddadang.vercel.app/auth/kakao/callback`, `http://localhost:5000/auth/kakao/callback` (카카오 콘솔·BE 등록 완료)
+- FE는 `KAKAO_REDIRECT_URI`가 없으면 `지금 주소 + /auth/kakao/callback`을 자동으로 씀 → 웹은 `KAKAO_REST_API_KEY`만 넘기면 됨
+- 로컬: `flutter run -d chrome --web-port=5000 --dart-define=KAKAO_REST_API_KEY=…`
+- 배포: `flutter build web --release --dart-define=KAKAO_REST_API_KEY=…` 후 build/web 업로드 (`web/vercel.json`이 같이 복사돼서 /auth/kakao/callback 새로고침도 index.html로 감)

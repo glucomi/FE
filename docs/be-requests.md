@@ -2,7 +2,13 @@
 
 기준: 피그마 `와이어프레임&정책서` 페이지. FE는 아래 계약대로 이미 연결해 두었고, 표시한 BE 작업이 끝나면 추가 FE 수정 없이 동작합니다.
 
-## 🔴 배포 전에 꼭 필요 (웹 카카오 로그인)
+## ✅ 웹 카카오 로그인 — 2026-11-23 확인 완료
+
+- `POST /api/auth/kakao/code` 배포됨 (가짜 코드 → 401 AUTH_4014 정상)
+- CORS: ddadang.vercel.app 에서 Authorization 헤더 붙인 요청 통과
+- 리다이렉트 URI는 `…/auth/kakao/callback` 으로 확정 (아래 1~5는 기록용)
+
+## (기록) 웹 카카오 로그인 요청 내용
 
 웹(ddadang.vercel.app)은 카카오 SDK 토큰을 직접 받을 수 없어서 **인가 코드 방식**으로 로그인합니다.
 FE는 `POST /api/auth/kakao/code`를 호출하도록 이미 연결해 두었습니다.
@@ -75,3 +81,42 @@ FE는 `POST /api/auth/kakao/code`를 호출하도록 이미 연결해 두었습�
 | MO-MEMO-010 | `GET(date)/POST/PUT/DELETE /api/memo-records` |
 | MO-INSULIN-010/020/030 | 6번 참고 |
 | MO-MEAL | 영양성분 당류 필드명 `sugarsG`로 수정 (기존 FE가 `sugarG`로 읽어서 당류가 항상 비어 있었음) |
+
+## 🔴 AI 음식 촬영 (2026-11-22 추가)
+
+팀장님이 공유한 AI 모델(drive handoff 2개)을 서버에서 돌려 주셔야 FE 카메라(MO-CAMERA-010)가 실제로 분석됩니다.
+FE는 아래 계약으로 이미 연결해 두었고, 서버가 없으면 분석 실패 토스트가 뜹니다. (로그인 전 데모는 예시 결과 사용)
+
+12. **API 추가: `POST /api/meal-records/ai-analysis`** (multipart/form-data, 파일 필드명 `image`, 사진 1장)
+    - 모델
+      - 분류: `cls_best.pt` (YOLOv8n-cls) → `food_name`, `confidence` (food_ai.py `predict`)
+      - 위치: `loc_best.pt` (YOLOv8n) → 가장 큰 음식 박스의 `center`, `bbox` (food_ai.py `food_center`)
+      - 둘 다 `ultralytics` 필요 → Python 서비스(FastAPI 등)로 띄우고 Spring이 내부 호출하는 방식 추천. 응답 래퍼 `{isSuccess, code, message, result}`는 Spring 쪽에서 씌워 주세요
+    - 응답 `result`
+      ```json
+      {
+        "imageWidth": 1080, "imageHeight": 1080,
+        "foods": [
+          { "foodName": "김치찌개", "confidence": 0.71, "foodId": 123,
+            "center": { "x": 540.2, "y": 512.8 },
+            "bbox": { "x1": 120, "y1": 90, "x2": 960, "y2": 935 } }
+        ]
+      }
+      ```
+      - `foodId`: 분류 음식명을 음식 DB와 매칭한 ID (없으면 null → FE가 `GET /api/foods?keyword=음식명` 첫 결과로 매칭)
+      - `center`는 원본 사진 픽셀 좌표 (FE가 사진 비율로 바꿔 사진 위 음식칩 위치에 씀). `food_name`/배열 `center`처럼 Python 출력 그대로 줘도 FE가 읽음
+      - 음식을 못 찾으면 `foods: []`
+    - 시간: FE 타임아웃 60초
+13. **AI 분석 백그라운드 + 자동 확정 + push** (정책: 분석 중 이탈해도 결과 보존, 완료 후 자동 등록 + 앱 push)
+    - 지금 FE는 앱이 켜져 있는 동안 분석 → 식사 기록 저장(`POST /api/meal-records`)까지 자동으로 하고, push 대신 토스트로 알림
+    - 앱을 완전히 닫아도 이어지려면 서버에서 분석·저장을 맡아야 함 (사진 업로드 → 분석 작업 ID → 완료 시 기록 생성 + push). 방식 정해지면 FE 맞추겠습니다
+
+## 🟡 화면 연결하면서 필요해진 것 (2026-11-22)
+
+14. ~~식사 기록 조회·삭제·수정~~ ✅ 2026-11-23 Swagger 확인 — `GET/PUT/DELETE /api/meal-records/{id}`, 홈 `meals[].mealRecordId` FE 연결 완료
+    - 남은 것: `POST /api/meal-records` 응답에서 새 기록 ID를 FE가 아직 안 씀(방금 저장한 기록은 홈 새로고침 후 카드에서 수정·삭제), 사진 URL(9번)
+15. **혈당 반응 예측** (MO-GLYCEMIC-010 ③ 예상 혈당 변화 등급·변화량)
+    - 정책 미기재. 값 내려줄 API가 생기면 연결 (지금은 `-` / `-- mg/dL`)
+16. **일일카드** (COM-POP-11): 지금 FE는 어제 날짜로 `GET /api/home`을 불러 평균·최고·최저·TIR을 직접 계산. 요약 문구·경보(최고/최저/스파이크) 카드는 전용 API가 필요
+17. **프리스타일 리브레 계정 연동** (MO-ATTACH-010 (b) 리브레 계정 연동): 이메일로 연동하는 API 없음. FE는 "준비 중" 안내만 띄움
+18. **케어센스 에어 센서 등록** (MO-ATTACH-010 (c) 스캔/(d) 일련번호 뒤 4자리): 일련번호를 저장할 API 없음. FE는 일련번호 입력 후 기존 아이센스 OAuth(`/api/cgm/oauth/authorize-url`)로 연결

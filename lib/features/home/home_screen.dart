@@ -1,16 +1,24 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/features/attach/cgm_attach_flow.dart';
+import 'package:glucomi/features/attach/cgm_attach_models.dart';
+import 'package:glucomi/features/camera/food_analysis.dart';
 import 'package:glucomi/features/camera/food_camera_screen.dart';
+import 'package:glucomi/features/chat/chat_screen.dart';
 import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/drug/drug_record_screen.dart';
 import 'package:glucomi/features/exercise/exercise_models.dart';
 import 'package:glucomi/features/exercise/exercise_record_screen.dart';
 import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 import 'package:glucomi/features/glucose_record/glucose_record_screen.dart';
+import 'package:glucomi/features/glycemic/glycemic_screen.dart';
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/widgets/add_record_menu.dart';
 import 'package:glucomi/features/home/widgets/cgm_chart.dart';
+import 'package:glucomi/features/home/widgets/daily_card_dialog.dart';
 import 'package:glucomi/features/home/widgets/daily_record_list.dart';
 import 'package:glucomi/features/home/widgets/glucose_stats.dart';
 import 'package:glucomi/features/home/widgets/glucose_summary.dart';
@@ -23,6 +31,7 @@ import 'package:glucomi/features/insulin/insulin_record_screen.dart';
 import 'package:glucomi/features/meal/meal_food_repository.dart';
 import 'package:glucomi/features/meal/meal_models.dart';
 import 'package:glucomi/features/meal/meal_record_screen.dart';
+import 'package:glucomi/features/meal/meal_save_screen.dart';
 import 'package:glucomi/features/memo/memo_models.dart';
 import 'package:glucomi/features/memo/memo_record_screen.dart';
 import 'package:glucomi/features/mypage/mypage_models.dart';
@@ -49,6 +58,8 @@ class HomeScreen extends StatefulWidget {
     this.memoRepository,
     this.onConnectSensor,
     this.onRecordsChanged,
+    this.foodAnalysisRepository,
+    this.loadDailyCard,
   });
 
   final HomeData data;
@@ -90,6 +101,12 @@ class HomeScreen extends StatefulWidget {
   /// 서버에 기록을 저장한 뒤 홈 데이터를 다시 불러옴
   /// (없으면 새 기록을 화면에만 덧붙임)
   final Future<void> Function()? onRecordsChanged;
+
+  /// AI 음식 촬영 분석 (없으면 예시 결과)
+  final FoodAnalysisRepository? foodAnalysisRepository;
+
+  /// COM-POP-11 일일카드 데이터 (없으면 빈 카드)
+  final Future<DailyCardData> Function()? loadDailyCard;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -143,6 +160,27 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     });
     showAppToast(context, '센서가 연결됐어요. (예시 데이터)', type: AppToastType.success);
+  }
+
+  /// MO-ATTACH-010 cgm 연결 — 홈 '연결하기'·마이페이지 '센서 연결'
+  Future<void> _openAttach() async {
+    final homeRoute = ModalRoute.of(context);
+    final connected = await openCgmAttach(
+      context,
+      onConnect: (request) async {
+        if (request.type == CgmSensorType.libre) {
+          // 리브레 연동 API 없음 (docs/be-requests.md)
+          showAttachNotReady(context, request.type);
+          return false;
+        }
+        await _connectSensor();
+        return true;
+      },
+    );
+    // (e) 연결 성공 → 확인: 마이페이지에서 들어왔어도 홈으로
+    if (connected && mounted && homeRoute != null) {
+      Navigator.of(context).popUntil((route) => route == homeRoute);
+    }
   }
 
   Future<void> _openCalendar() async {
@@ -211,26 +249,258 @@ class _HomeScreenState extends State<HomeScreen> {
     if (record == null || record.entries.isEmpty || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
+    showAppToastOn(messenger, '식단을 기록했어요.', type: AppToastType.success);
+    final card = await _addMealCard(record);
+    // MO-MEAL-040 ⑦ 저장하기 → MO-GLYCEMIC-010
+    if (mounted) await _openGlycemic(card);
+  }
+
+  /// 저장한 식사를 오늘의 기록에 반영 (서버 연동 시 홈을 새로 불러옴)
+  Future<DailyRecord> _addMealCard(
+    MealRecord record, {
+    AiFoodStatus? aiStatus,
+    Uint8List? photo,
+  }) async {
+    final carbs = record.carbs.round();
+    final card = DailyRecord(
+      time: record.time,
+      type: DailyRecordType.food,
+      title: record.title,
+      details: ['총 ${record.kcal.round()} kcal', '총 탄수화물 $carbs g'],
+      carbsGram: carbs.toDouble(),
+      kcal: record.kcal,
+      meal: record,
+      photoBytes: photo,
+      aiStatus: aiStatus,
+    );
     if (widget.onRecordsChanged != null) {
-      // 음식 기록하기 화면에서 이미 서버에 저장됨 → 홈을 새로 불러옴
-      showAppToastOn(messenger, '식단을 기록했어요.', type: AppToastType.success);
+      // 기록 화면에서 이미 서버에 저장됨 → 홈을 새로 불러옴
       await widget.onRecordsChanged!();
-      return;
+      return card;
+    }
+    if (mounted && DateUtils.isSameDay(record.time, _data.date)) {
+      setState(() => _addedRecords.add(card));
+    }
+    return card;
+  }
+
+  /// MO-GLYCEMIC-010 혈당 반응
+  ///
+  /// 서버 기록(mealRecordId)은 GET /api/meal-records/{id} 로 음식별 정보를 불러옴
+  Future<void> _openGlycemic(DailyRecord card) async {
+    final online = widget.onRecordsChanged != null;
+    final repository = widget.mealRepository;
+    final serverId = card.mealRecordId;
+
+    var record = card.meal;
+    if (record == null && serverId != null && repository != null) {
+      try {
+        record = await repository.recordDetail(serverId);
+      } catch (_) {
+        // 상세를 못 불러와도 홈 요약(대표 음식·칼로리)으로 보여줌
+      }
+      if (!mounted) return;
+    }
+    final meal = record != null
+        ? GlycemicMeal.fromRecord(record)
+        : GlycemicMeal.fromSummary(
+            time: card.time,
+            title: card.title,
+            kcal: card.kcal,
+            carbs: card.carbsGram,
+          );
+
+    Future<bool> Function()? onDelete;
+    if (!online) {
+      onDelete = () async {
+        setState(() => _forget(card));
+        return true;
+      };
+    } else if (serverId != null && repository != null) {
+      onDelete = () async {
+        try {
+          await repository.deleteRecord(serverId);
+        } catch (_) {
+          if (mounted) {
+            showAppToast(context, '식사 기록을 삭제하지 못했어요.', type: AppToastType.error);
+          }
+          return false;
+        }
+        await widget.onRecordsChanged!();
+        return true;
+      };
     }
 
-    final carbs = record.carbs.round();
-    setState(() {
-      _addedRecords.add(
+    // 서버 기록은 PUT, 화면 안에서만 기록한 식사는 카드 교체로 수정
+    final canEdit =
+        record != null &&
+        repository != null &&
+        (!online || serverId != null);
+    final editable = record;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (glycemicContext) => GlycemicScreen(
+          meal: meal,
+          points: _data.points,
+          aiRecorded: card.aiStatus == AiFoodStatus.done,
+          onDelete: onDelete,
+          onEdit: canEdit
+              ? () => _editMeal(glycemicContext, card, editable!, repository!)
+              : null,
+        ),
+      ),
+    );
+  }
+
+  /// 수정하기 → MO-MEAL-040 (담긴 음식·일시 그대로) → 저장하면 혈당 반응 화면 새로 열기
+  Future<void> _editMeal(
+    BuildContext glycemicContext,
+    DailyRecord card,
+    MealRecord record,
+    MealFoodRepository repository,
+  ) async {
+    final serverId = card.mealRecordId;
+    final online = widget.onRecordsChanged != null;
+    final updated = await Navigator.of(glycemicContext).push<MealRecord>(
+      MaterialPageRoute(
+        builder: (_) => MealSaveScreen(
+          repository: online && serverId != null
+              ? MealRecordUpdateRepository(repository, serverId)
+              : repository,
+          entries: record.entries,
+          initialTime: record.time,
+        ),
+      ),
+    );
+    if (updated == null || !mounted) return;
+    if (glycemicContext.mounted) Navigator.of(glycemicContext).pop();
+
+    if (online) {
+      await widget.onRecordsChanged!();
+      if (!mounted) return;
+      await _openGlycemic(
         DailyRecord(
-          time: record.time,
+          time: updated.time,
           type: DailyRecordType.food,
-          title: record.title,
-          details: ['총 ${record.kcal.round()} kcal', '총 탄수화물 $carbs g'],
-          carbsGram: carbs.toDouble(),
+          title: updated.title,
+          meal: updated,
+          mealRecordId: serverId,
+          kcal: updated.kcal,
+          carbsGram: updated.carbs,
+          aiStatus: card.aiStatus,
         ),
       );
-    });
-    showAppToastOn(messenger, '식단을 기록했어요.', type: AppToastType.success);
+      return;
+    }
+    setState(() => _forget(card));
+    final next = await _addMealCard(
+      updated,
+      aiStatus: card.aiStatus,
+      photo: card.photoBytes,
+    );
+    if (mounted) await _openGlycemic(next);
+  }
+
+  /// MO-CAMERA-010 분석 → 음식 DB 매칭 → 자동 확정 등록
+  ///
+  /// 카메라를 닫아도(분석 중 이탈) 이 작업은 계속 돌고, 오늘의 기록에 '분석중' 카드가 보임.
+  /// 끝나면 식단을 저장하고 알림 대신 토스트로 알림 (웹은 앱 push 불가)
+  Future<DailyRecord?> _runAiAnalysis(
+    Uint8List bytes,
+    String filename,
+    DateTime time,
+  ) async {
+    final mealRepository = widget.mealRepository;
+    if (mealRepository == null) {
+      _notReady('AI 음식 분석');
+      return null;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final pending = DailyRecord(
+      time: time,
+      type: DailyRecordType.food,
+      title: '',
+      photoBytes: bytes,
+      aiStatus: AiFoodStatus.analyzing,
+    );
+    if (DateUtils.isSameDay(time, _data.date)) {
+      setState(() => _addedRecords.add(pending));
+    }
+    void dropPending() {
+      if (mounted) setState(() => _addedRecords.remove(pending));
+    }
+
+    try {
+      final analysis =
+          widget.foodAnalysisRepository ?? const SampleFoodAnalysisRepository();
+      final result = await analysis.analyze(bytes, filename: filename);
+
+      final entries = <MealEntry>[];
+      final photos = <MealPhoto>[];
+      for (final found in result.foods) {
+        final food = await _matchFood(mealRepository, found);
+        if (food == null) continue;
+        entries.add(MealEntry.initial(food));
+        if (photos.isEmpty) {
+          photos.add(
+            MealPhoto(
+              bytes: bytes,
+              foodId: food.id,
+              label: food.name,
+              center: found.center,
+            ),
+          );
+        }
+      }
+      if (entries.isEmpty) {
+        dropPending();
+        showAppToastOn(
+          messenger,
+          '음식을 찾지 못했어요. 직접 검색해서 기록해 주세요.',
+          type: AppToastType.error,
+        );
+        return null;
+      }
+
+      final record = MealRecord(time: time, entries: entries, photos: photos);
+      await mealRepository.saveRecord(record);
+      dropPending();
+      showAppToastOn(
+        messenger,
+        'AI 분석이 끝나 식단을 기록했어요.',
+        type: AppToastType.success,
+      );
+      if (!mounted) return null;
+      return _addMealCard(
+        record,
+        aiStatus: AiFoodStatus.done,
+        photo: bytes,
+      );
+    } catch (_) {
+      dropPending();
+      showAppToastOn(
+        messenger,
+        '사진을 분석하지 못했어요. 다시 시도해 주세요.',
+        type: AppToastType.error,
+      );
+      return null;
+    }
+  }
+
+  /// 분석 결과 음식명 → 음식 DB (서버가 foodId 를 주면 그 음식, 아니면 이름 검색 첫 결과)
+  Future<MealFood?> _matchFood(
+    MealFoodRepository repository,
+    AnalyzedFood found,
+  ) async {
+    final results = await repository.search(found.name);
+    if (results.isEmpty) return null;
+    for (final food in results) {
+      if (food.id == found.foodId || food.name == found.name) {
+        return repository.detail(food);
+      }
+    }
+    return repository.detail(results.first);
   }
 
   /// 오늘의 기록 중 가장 마지막 체중
@@ -514,17 +784,85 @@ class _HomeScreenState extends State<HomeScreen> {
       _openGlucoseRecord(glucoseRepository, existing: record);
     } else if (record.memo != null && widget.memoRepository != null) {
       _openMemoRecord(widget.memoRepository!, existing: record);
+    } else if (record.type == DailyRecordType.food) {
+      if (record.aiStatus == AiFoodStatus.analyzing) {
+        showAppToast(context, '사진 속 음식을 분석하고 있어요.');
+      } else {
+        _openGlycemic(record);
+      }
     } else {
       _notReady('기록 상세');
     }
   }
 
+  /// MO-CAMERA-010 AI 음식 촬영
   void _openCamera() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
-        builder: (_) => const FoodCameraScreen(),
+        builder: (cameraContext) => FoodCameraScreen(
+          onAnalyze: (file) async {
+            final bytes = await file.readAsBytes();
+            final card = await _runAiAnalysis(
+              bytes,
+              file.name,
+              DateTime.now(),
+            );
+            // 분석 중 이탈했으면 오늘의 기록 카드로만 반영
+            if (!cameraContext.mounted) return;
+            Navigator.of(cameraContext).pop();
+            if (card != null && mounted) await _openGlycemic(card);
+          },
+        ),
       ),
+    );
+  }
+
+  /// MO-CHAT-010 따당챗 — 상단 탭 전환이라 애니메이션 없이 올림
+  void _openChat() {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (chatContext, _, _) => ChatScreen(
+          onSelectHomeTab: () => Navigator.of(chatContext).pop(),
+          onSelectDock: (tab) {
+            Navigator.of(chatContext).pop();
+            _onSelectDock(tab);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _onSelectDock(HomeTab tab) {
+    switch (tab) {
+      case HomeTab.home:
+        break;
+      case HomeTab.camera:
+        _openCamera();
+      case HomeTab.myPage:
+        _openMyPage();
+      case HomeTab.farm:
+        // 정책서에 농장 화면 없음 (1차 전달본 시안만 있음)
+        _notReady(tab.label);
+    }
+  }
+
+  /// COM-POP-11 일일카드
+  Future<void> _openDailyCard() {
+    final data = _data;
+    final yesterday = data.date.subtract(const Duration(days: 1));
+    return showDailyCardDialog(
+      context,
+      load:
+          widget.loadDailyCard ??
+          () async => DailyCardData.fromPoints(
+            yesterday,
+            const [],
+            targetMin: data.targetMin,
+            targetMax: data.targetMax,
+          ),
     );
   }
 
@@ -545,7 +883,7 @@ class _HomeScreenState extends State<HomeScreen> {
             connected: data.sensorConnected,
             day: data.sensorDay,
           ),
-          onConnectSensor: _connectSensor,
+          onConnectSensor: _openAttach,
           onSelectTab: (tab) {
             switch (tab) {
               case HomeTab.home || HomeTab.myPage:
@@ -575,18 +913,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.neutralsSurface,
       bottomNavigationBar: HomeDockBar(
         current: HomeTab.home,
-        onSelect: (tab) {
-          switch (tab) {
-            case HomeTab.home:
-              break;
-            case HomeTab.camera:
-              _openCamera();
-            case HomeTab.myPage:
-              _openMyPage();
-            case HomeTab.farm:
-              _notReady(tab.label);
-          }
-        },
+        onSelect: _onSelectDock,
       ),
       body: Stack(
         children: [
@@ -620,7 +947,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: HomeHero(
                           message: '지금 가볍게\n산책 어때요?',
                           showSuggestionChips: data.hasGlucose,
+                          // 알림 창: 정책서 '미기획'
                           onTapNotification: () => _notReady('알림'),
+                          onSelectTab: (tab) {
+                            if (tab == HomeHeaderTab.chat) _openChat();
+                          },
                         ),
                       ),
                       Positioned(
@@ -650,7 +981,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             _notReady('새로고침');
                           }
                         },
-                        onConnect: _connectSensor,
+                        onConnect: _openAttach,
                       ),
                       const SizedBox(height: AppSpacing.spacing6),
                       CgmChart(
@@ -671,7 +1002,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: AppSpacing.spacing6),
                       DailyRecordList(
                         records: data.records,
-                        onTapDailyCard: () => _notReady('일일 카드'),
+                        onTapDailyCard: _openDailyCard,
                         onTapRecord: _onTapRecord,
                       ),
                     ],

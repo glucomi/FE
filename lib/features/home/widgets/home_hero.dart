@@ -2,7 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
 
-/// 홈 상단 — 배경 이미지, 홈/Q&A 탭, 알림, 오늘의 제안 문구
+/// 홈 상단 탭 (MO-HOME-010 2번 탭 이동)
+///
+/// 정책서 문구는 'MO-QNA-010 이동'(Q&A)이지만 최신 와이어프레임 (MO-CHAT-010)은 '따당챗'
+enum HomeHeaderTab {
+  home('홈'),
+  chat('따당챗');
+
+  const HomeHeaderTab(this.label);
+
+  final String label;
+}
+
+/// 홈 상단 — 배경 이미지, 홈/따당챗 탭, 알림, 오늘의 제안 문구
 class HomeHero extends StatelessWidget {
   const HomeHero({
     super.key,
@@ -10,12 +22,14 @@ class HomeHero extends StatelessWidget {
     this.showSuggestionChips = false,
     this.hasNotification = true,
     this.onTapNotification,
+    this.onSelectTab,
   });
 
   final String message;
   final bool showSuggestionChips;
   final bool hasNotification;
   final VoidCallback? onTapNotification;
+  final ValueChanged<HomeHeaderTab>? onSelectTab;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +39,9 @@ class HomeHero extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _HeaderTabs(
+            HomeHeaderTabs(
+              current: HomeHeaderTab.home,
+              onSelect: onSelectTab,
               hasNotification: hasNotification,
               onTapNotification: onTapNotification,
             ),
@@ -59,9 +75,18 @@ class HomeHero extends StatelessWidget {
   }
 }
 
-class _HeaderTabs extends StatelessWidget {
-  const _HeaderTabs({required this.hasNotification, this.onTapNotification});
+/// 상단 탭 + 알림 (홈·따당챗 공용)
+class HomeHeaderTabs extends StatelessWidget {
+  const HomeHeaderTabs({
+    super.key,
+    required this.current,
+    this.onSelect,
+    this.hasNotification = false,
+    this.onTapNotification,
+  });
 
+  final HomeHeaderTab current;
+  final ValueChanged<HomeHeaderTab>? onSelect;
   final bool hasNotification;
   final VoidCallback? onTapNotification;
 
@@ -77,15 +102,24 @@ class _HeaderTabs extends StatelessWidget {
         padding: const EdgeInsets.only(left: 22, right: 14),
         child: Row(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spacing1),
-              child: Text('홈', style: style),
-            ),
-            const SizedBox(width: AppSpacing.spacing1),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spacing1),
-              child: Opacity(opacity: 0.5, child: Text('Q&A', style: style)),
-            ),
+            for (final tab in HomeHeaderTab.values) ...[
+              if (tab != HomeHeaderTab.values.first)
+                const SizedBox(width: AppSpacing.spacing1),
+              GestureDetector(
+                key: ValueKey('home-tab-${tab.name}'),
+                behavior: HitTestBehavior.opaque,
+                onTap: tab == current ? null : () => onSelect?.call(tab),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.spacing1,
+                  ),
+                  child: Opacity(
+                    opacity: tab == current ? 1 : 0.5,
+                    child: Text(tab.label, style: style),
+                  ),
+                ),
+              ),
+            ],
             const Spacer(),
             GestureDetector(
               onTap: onTapNotification,

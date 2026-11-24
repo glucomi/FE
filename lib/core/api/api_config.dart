@@ -29,17 +29,28 @@ abstract final class ApiConfig {
   static const String kakaoRestApiKey = String.fromEnvironment(
     'KAKAO_REST_API_KEY',
   );
-  static const String kakaoRedirectUri = String.fromEnvironment(
+  static const String _kakaoRedirectUriOverride = String.fromEnvironment(
     'KAKAO_REDIRECT_URI',
   );
+
+  /// 카카오 콘솔·BE 에 등록된 콜백 경로
+  /// (https://ddadang.vercel.app/auth/kakao/callback, http://localhost:5000/auth/kakao/callback)
+  static const String kakaoCallbackPath = '/auth/kakao/callback';
+
+  /// 카카오 인가 요청과 BE 코드 교환에 같은 값을 넣어야 함.
+  /// --dart-define 이 없으면 지금 열린 주소 + 콜백 경로 (배포·로컬 5000 둘 다 자동으로 맞음)
+  static String get kakaoRedirectUri {
+    if (_kakaoRedirectUriOverride.isNotEmpty) return _kakaoRedirectUriOverride;
+    if (!kIsWeb) return '';
+    return '${Uri.base.origin}$kakaoCallbackPath';
+  }
 
   /// 카카오 로그인(MO-LOGIN-010)을 쓸 수 있는 빌드인지
   ///
   /// 키가 없으면 로그인 화면 없이 약관 동의(MO-SIGNUP-010)부터 시작함
   /// (서버 웹 로그인·CORS 준비 전까지 이 상태로 배포)
-  static bool get kakaoLoginEnabled => kIsWeb
-      ? kakaoRestApiKey.isNotEmpty && kakaoRedirectUri.isNotEmpty
-      : kakaoNativeAppKey.isNotEmpty;
+  static bool get kakaoLoginEnabled =>
+      kIsWeb ? kakaoRestApiKey.isNotEmpty : kakaoNativeAppKey.isNotEmpty;
 
   static const Duration timeout = Duration(seconds: 15);
 }

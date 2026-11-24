@@ -4,10 +4,6 @@ import 'package:web/web.dart' as web;
 ///
 /// 남겨 두면 새로고침·로그아웃 뒤에 이미 쓴 인가 코드로 다시 로그인을 시도함
 void clearOAuthCallbackFromUrl() {
-  final location = web.window.location;
-  web.window.history.replaceState(
-    null,
-    '',
-    '${location.pathname}${location.hash}',
-  );
+  // 콜백 경로(/auth/kakao/callback)도 남기지 않고 앱 첫 주소로 돌려놓음
+  web.window.history.replaceState(null, '', '/');
 }

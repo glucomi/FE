@@ -31,6 +31,7 @@ class MealSaveScreen extends StatefulWidget {
     required this.entries,
     this.onEntriesChanged,
     this.clock = DateTime.now,
+    this.initialTime,
     this.pickPhoto,
   });
 
@@ -38,6 +39,9 @@ class MealSaveScreen extends StatefulWidget {
   final List<MealEntry> entries;
   final ValueChanged<List<MealEntry>>? onEntriesChanged;
   final DateTime Function() clock;
+
+  /// 수정할 때 기존 식사 일시 (없으면 지금)
+  final DateTime? initialTime;
   final MealPhotoPicker? pickPhoto;
 
   @override
@@ -45,7 +49,7 @@ class MealSaveScreen extends StatefulWidget {
 }
 
 class _MealSaveScreenState extends State<MealSaveScreen> {
-  late final DateTime _now = widget.clock();
+  late final DateTime _now = widget.initialTime ?? widget.clock();
 
   // ① 진입 시 오늘 날짜, ② 현재 시간
   late DateTime _date = DateTime(_now.year, _now.month, _now.day);

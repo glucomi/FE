@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
@@ -174,6 +176,10 @@ class DailyRecordCard extends StatelessWidget {
                 children: [
                   Text(formatRecordTime(record.time), style: metaStyle),
                   const Spacer(),
+                  if (record.aiStatus case final ai?) ...[
+                    _AiBadge(status: ai),
+                    const SizedBox(width: AppSpacing.spacing1),
+                  ],
                   RecordTypeChip(type: record.type),
                 ],
               ),
@@ -194,7 +200,10 @@ class DailyRecordCard extends StatelessWidget {
               child: Row(
                 children: [
                   if (record.type == DailyRecordType.food) ...[
-                    _FoodThumbnail(imageAsset: record.imageAsset),
+                    _FoodThumbnail(
+                      imageAsset: record.imageAsset,
+                      bytes: record.photoBytes,
+                    ),
                     const SizedBox(width: AppSpacing.spacing2),
                   ],
                   Expanded(
@@ -204,7 +213,9 @@ class DailyRecordCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            record.title,
+                            record.aiStatus == AiFoodStatus.analyzing
+                                ? '사진 속 음식을 분석하고 있어요'
+                                : record.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.bodyMdM.copyWith(
@@ -262,10 +273,38 @@ class DailyRecordCard extends StatelessWidget {
   }
 }
 
+/// AI 음식 촬영 카드 배지 (분석중 / AI 음식)
+class _AiBadge extends StatelessWidget {
+  const _AiBadge({required this.status});
+
+  final AiFoodStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final analyzing = status == AiFoodStatus.analyzing;
+    return Container(
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spacing2),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: analyzing ? AppColors.neutralsSubtle : AppColors.statusWarningSubtle,
+        borderRadius: BorderRadius.circular(AppRadius.radiusFull),
+      ),
+      child: Text(
+        status.label,
+        style: AppTypography.labelBadge.copyWith(
+          color: analyzing ? AppColors.foregroundTertiary : AppColors.statusWarning,
+        ),
+      ),
+    );
+  }
+}
+
 class _FoodThumbnail extends StatelessWidget {
-  const _FoodThumbnail({this.imageAsset});
+  const _FoodThumbnail({this.imageAsset, this.bytes});
 
   final String? imageAsset;
+  final Uint8List? bytes;
 
   @override
   Widget build(BuildContext context) {
@@ -274,7 +313,9 @@ class _FoodThumbnail extends StatelessWidget {
       child: SizedBox(
         width: 57,
         height: 57,
-        child: imageAsset != null
+        child: bytes != null
+            ? Image.memory(bytes!, fit: BoxFit.cover)
+            : imageAsset != null
             ? Image.asset(imageAsset!, fit: BoxFit.cover)
             : ColoredBox(
                 color: DailyRecordType.food.tint,

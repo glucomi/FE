@@ -135,9 +135,15 @@ class MealEntry {
 /// 식사 사진 한 장 (MO-MEAL-040). [foodId] 가 있으면 사진 위에 음식칩 표시
 @immutable
 class MealPhoto {
-  const MealPhoto({required this.bytes, this.foodId});
+  const MealPhoto({required this.bytes, this.foodId, this.label, this.center});
 
   final Uint8List bytes;
+
+  /// 사진 위 음식칩 문구 (AI 분석 음식명)
+  final String? label;
+
+  /// 음식칩 위치 — 사진 크기 대비 비율 (AI 로컬라이저 center). 없으면 가운데
+  final Offset? center;
 
   /// 사진과 연결된 음식 (음식칩 탭 → 해당 음식 위치로 이동)
   final String? foodId;

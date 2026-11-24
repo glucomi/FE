@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
@@ -6,8 +7,22 @@ import 'package:glucomi/features/drug/drug_models.dart';
 import 'package:glucomi/features/exercise/exercise_models.dart';
 import 'package:glucomi/features/glucose_record/glucose_record_models.dart';
 import 'package:glucomi/features/insulin/insulin_models.dart';
+import 'package:glucomi/features/meal/meal_models.dart';
 import 'package:glucomi/features/memo/memo_models.dart';
 import 'package:glucomi/features/weight/weight_models.dart';
+
+/// AI 음식 촬영으로 만든 식단 카드 상태
+enum AiFoodStatus {
+  /// 분석중 — 백그라운드에서 분석이 돌고 있음
+  analyzing('분석중'),
+
+  /// 분석이 끝나 자동 확정 등록됨
+  done('AI 음식');
+
+  const AiFoodStatus(this.label);
+
+  final String label;
+}
 
 /// CGM(연속혈당측정) 한 개의 측정값
 @immutable
@@ -53,6 +68,11 @@ class DailyRecord {
     this.glucose,
     this.memo,
     this.exercise,
+    this.meal,
+    this.mealRecordId,
+    this.kcal,
+    this.photoBytes,
+    this.aiStatus,
   });
 
   /// 메모 기록 카드 (내용이 없고 사진만 있으면 '사진 n장')
@@ -98,6 +118,21 @@ class DailyRecord {
 
   /// 운동 기록 (운동 화면 (c) 등록후 진입에 사용)
   final ExerciseRecord? exercise;
+
+  /// 이 화면에서 기록한 식사 (혈당 반응 화면에 음식별 정보 표시)
+  final MealRecord? meal;
+
+  /// 서버 식사 기록 ID (홈 API 에 있으면 삭제에 사용)
+  final String? mealRecordId;
+
+  /// 식사 총 칼로리
+  final double? kcal;
+
+  /// 식단 카드 썸네일 (AI 촬영 사진)
+  final Uint8List? photoBytes;
+
+  /// AI 음식 촬영 상태 (MO-CAMERA-010 분석 중 이탈 카드)
+  final AiFoodStatus? aiStatus;
 
   /// 운동 기록 → 오늘의 기록 카드 (운동명 / 시간 · 칼로리)
   factory DailyRecord.fromExercise(ExerciseRecord record) => DailyRecord(

@@ -8,6 +8,8 @@ import 'package:glucomi/features/glucose_record/api_glucose_record_repository.da
 import 'package:glucomi/features/home/home_models.dart';
 import 'package:glucomi/features/home/home_screen.dart';
 import 'package:glucomi/features/insulin/api_insulin_repository.dart';
+import 'package:glucomi/features/camera/food_analysis.dart';
+import 'package:glucomi/features/home/widgets/daily_card_dialog.dart';
 import 'package:glucomi/features/meal/api_meal_food_repository.dart';
 import 'package:glucomi/features/memo/api_memo_repository.dart';
 import 'package:glucomi/features/weight/api_weight_repository.dart';
@@ -51,6 +53,7 @@ class _HomeLoaderState extends State<HomeLoader> {
   final _insulinRepository = ApiInsulinRepository();
   final _glucoseRepository = ApiGlucoseRecordRepository();
   final _memoRepository = ApiMemoRepository();
+  final _foodAnalysisRepository = ApiFoodAnalysisRepository();
 
   late DateTime _date = _dayOf(widget.initialDate ?? DateTime.now());
   late HomeData _data = HomeData.empty(
@@ -226,6 +229,19 @@ class _HomeLoaderState extends State<HomeLoader> {
     return null;
   }
 
+  /// COM-POP-11 일일카드 — 어제 홈 데이터의 CGM 값으로 요약
+  /// (일일카드 전용 API 가 생기면 교체 — docs/be-requests.md)
+  Future<DailyCardData> _loadDailyCard() async {
+    final yesterday = _date.subtract(const Duration(days: 1));
+    final data = await _homeApi.fetch(yesterday);
+    return DailyCardData.fromPoints(
+      yesterday,
+      data.points,
+      targetMin: data.targetMin ?? _data.targetMin,
+      targetMax: data.targetMax ?? _data.targetMax,
+    );
+  }
+
   void _message(Object error, String fallback) {
     if (!mounted) return;
     final message = error is ApiException ? error.message : fallback;
@@ -252,6 +268,8 @@ class _HomeLoaderState extends State<HomeLoader> {
           insulinRepository: _insulinRepository,
           glucoseRepository: _glucoseRepository,
           memoRepository: _memoRepository,
+          foodAnalysisRepository: _foodAnalysisRepository,
+          loadDailyCard: _loadDailyCard,
         ),
         if (_loading)
           const Positioned(

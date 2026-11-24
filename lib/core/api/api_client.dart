@@ -50,6 +50,51 @@ class ApiClient {
   Future<dynamic> delete(String path, {bool auth = true}) =>
       _send('DELETE', path, auth: auth);
 
+  /// 파일 업로드 (multipart/form-data). AI 분석처럼 오래 걸릴 수 있어 [timeout] 따로 받음
+  Future<dynamic> postMultipart(
+    String path, {
+    required String field,
+    required List<int> bytes,
+    required String filename,
+    Map<String, String> fields = const {},
+    bool auth = true,
+    Duration timeout = const Duration(seconds: 60),
+    bool retried = false,
+  }) async {
+    final request = http.MultipartRequest('POST', _uri(path, null))
+      ..headers['Accept'] = 'application/json'
+      ..fields.addAll(fields)
+      ..files.add(http.MultipartFile.fromBytes(field, bytes, filename: filename));
+    final token = _session.accessToken;
+    if (auth && token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final http.Response response;
+    try {
+      final streamed = await _http.send(request).timeout(timeout);
+      response = await http.Response.fromStream(streamed);
+    } on TimeoutException {
+      throw const ApiException(message: '서버 응답이 늦어요. 잠시 후 다시 시도해 주세요.');
+    } catch (_) {
+      throw const ApiException(message: '네트워크 연결을 확인해 주세요.');
+    }
+
+    if (response.statusCode == 401 && auth && !retried && await _reissue()) {
+      return postMultipart(
+        path,
+        field: field,
+        bytes: bytes,
+        filename: filename,
+        fields: fields,
+        auth: auth,
+        timeout: timeout,
+        retried: true,
+      );
+    }
+    return _unwrap(response);
+  }
+
   Uri _uri(String path, Map<String, Object?>? query) {
     final params = <String, String>{
       for (final MapEntry(:key, :value) in (query ?? const {}).entries)

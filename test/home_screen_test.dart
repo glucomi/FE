@@ -112,11 +112,31 @@ void main() {
     expect(find.text('수정하기'), findsOneWidget);
   });
 
-  testWidgets('연결하기를 누르면 연결된 홈(예시 데이터)으로 바뀜', (tester) async {
+  testWidgets('연결하기 → cgm 연결(MO-ATTACH-010) 끝내면 연결된 홈(예시 데이터)으로 바뀜', (
+    tester,
+  ) async {
     await mount(tester, HomeData.empty(targetMin: 70, targetMax: 180));
 
     await tester.tap(find.text('연결하기'));
+    await tester.pumpAndSettle();
+    expect(find.text('사용할 센서 선택'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('sensor-caresensAir')));
+    await tester.pumpAndSettle();
+    expect(find.text('연결 가이드'), findsOneWidget);
+    await tester.tap(find.text('건너뛰기'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('sensor-manual-input')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('sensor-serial')), '0800');
     await tester.pump();
+    await tester.tap(find.text('다음'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('센서 연결 성공'), findsOneWidget);
+    await tester.tap(find.text('확인'));
+    await tester.pumpAndSettle();
 
     expect(find.text('연결하기'), findsNothing);
     expect(find.text('1일차'), findsOneWidget);
@@ -164,5 +184,30 @@ void main() {
     expect(CalendarMarkState.fromScore(84), CalendarMarkState.warning);
     expect(CalendarMarkState.fromScore(70), CalendarMarkState.warning);
     expect(CalendarMarkState.fromScore(69), CalendarMarkState.danger);
+  });
+
+  testWidgets('상단 따당챗 탭으로 MO-CHAT-010 이동, 홈 탭으로 복귀', (tester) async {
+    await mount(tester, HomeData.empty());
+
+    await tester.tap(find.byKey(const ValueKey('home-tab-chat')));
+    await tester.pumpAndSettle();
+    expect(find.text('따당챗을 준비하고 있어요'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('home-tab-home')));
+    await tester.pumpAndSettle();
+    expect(find.text('따당챗을 준비하고 있어요'), findsNothing);
+  });
+
+  testWidgets('일일 카드를 누르면 COM-POP-11 이 열림', (tester) async {
+    await mount(tester, HomeData.empty());
+
+    await tester.tap(find.text('일일 카드'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('daily-card')), findsOneWidget);
+    expect(find.text('어제 측정된 혈당이 없어요'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('daily-card-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('daily-card')), findsNothing);
   });
 }

@@ -69,15 +69,60 @@ class ApiMealFoodRepository implements MealFoodRepository {
 
   @override
   Future<void> saveRecord(MealRecord record) async {
-    await _client.post(
-      '/api/meal-records',
-      body: {
-        'eatenAt': formatApiDateTime(record.time),
-        'items': [for (final entry in record.entries) _item(entry)],
-        // 메모 필드명은 Swagger 확인 필요, 사진 업로드 API 는 아직 없음
-        if (record.memo.trim().isNotEmpty) 'memo': record.memo.trim(),
-      },
+    await _client.post('/api/meal-records', body: _recordBody(record));
+  }
+
+  /// 저장·수정 공통 본문 (Swagger MealRecordRequest — 사진 첨부는 아직 미지원)
+  Map<String, Object> _recordBody(MealRecord record) => {
+    'eatenAt': formatApiDateTime(record.time),
+    'items': [for (final entry in record.entries) _item(entry)],
+    if (record.memo.trim().isNotEmpty) 'memo': record.memo.trim(),
+  };
+
+  /// GET /api/meal-records/{id} — 메뉴는 foodId·양만 와서 음식 상세로 이름·영양을 채움
+  @override
+  Future<MealRecord> recordDetail(String id) async {
+    final json =
+        await _client.get('/api/meal-records/$id') as Map<String, dynamic>;
+    final items = [
+      for (final raw in json['items'] as List<dynamic>? ?? const [])
+        raw as Map<String, dynamic>,
+    ];
+    final foods = await Future.wait([
+      for (final item in items)
+        detail(
+          MealFood(
+            id: '${item['foodId']}',
+            name: '',
+            servingGram: 0,
+            kcal: 0,
+          ),
+        ),
+    ]);
+    return MealRecord(
+      time: parseApiDateTime(json['eatenAt'] as String),
+      memo: json['memo'] as String? ?? '',
+      entries: [
+        for (var i = 0; i < items.length; i++)
+          MealEntry(
+            food: foods[i],
+            amount: asDouble(items[i]['amount']) ?? foods[i].servingGram,
+            unit: items[i]['unit'] == 'SERVING'
+                ? MealUnit.serving
+                : MealUnit.gram,
+          ),
+      ],
     );
+  }
+
+  @override
+  Future<void> updateRecord(String id, MealRecord record) async {
+    await _client.put('/api/meal-records/$id', body: _recordBody(record));
+  }
+
+  @override
+  Future<void> deleteRecord(String id) async {
+    await _client.delete('/api/meal-records/$id');
   }
 
   /// MO-MEAL-050 음식 직접 등록 (영양 성분은 기준 섭취량 기준)

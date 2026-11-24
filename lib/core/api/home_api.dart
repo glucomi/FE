@@ -84,6 +84,8 @@ class HomeApi {
       title: count > 1 ? '$name 외 ${count - 1}개' : name,
       details: ['총 ${kcal.round()} kcal', '총 탄수화물 ${carbs.round()} g'],
       carbsGram: carbs.roundToDouble(),
+      kcal: kcal,
+      mealRecordId: (m['mealRecordId'] ?? m['id'])?.toString(),
     );
   }
 }

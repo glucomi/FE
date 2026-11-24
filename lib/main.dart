@@ -3,6 +3,7 @@ import 'package:glucomi/core/api/api_config.dart';
 import 'package:glucomi/core/api/auth_session.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:glucomi/features/signup/signup_flow.dart';
+import 'package:glucomi/features/splash/splash_screen.dart';
 import 'package:glucomi/shared/app_scroll_behavior.dart';
 import 'package:glucomi/shared/phone_frame.dart';
 
@@ -32,7 +33,8 @@ class GlucomiApp extends StatelessWidget {
         fontFamily: 'Pretendard',
         scaffoldBackgroundColor: const Color(0xFFFEFEFE),
       ),
-      home: const AppStart(),
+      // MO-SPLASH-010 2000ms 뒤 로그인 상태에 맞는 첫 화면으로
+      home: const SplashScreen(next: AppStart()),
       builder: (context, child) => PhoneFrame(child: child),
     );
   }

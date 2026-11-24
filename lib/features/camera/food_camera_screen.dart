@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:glucomi/design_system/tokens/app_tokens.dart';
+import 'package:glucomi/shared/widgets/app_permission_dialog.dart';
 import 'package:glucomi/shared/widgets/app_toast.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -133,6 +134,14 @@ class _FoodCameraScreenState extends State<FoodCameraScreen>
     try {
       final file = await ImagePicker().pickImage(source: ImageSource.gallery);
       if (file != null) await _analyze(file);
+    } on PlatformException catch (e) {
+      // (d) 자체모달 — 갤러리 권한 거부 시 COM-POP-12
+      final code = e.code.toLowerCase();
+      if (mounted && (code.contains('denied') || code.contains('access'))) {
+        await showPermissionDialog(context);
+      } else {
+        _showMessage('사진을 불러오지 못했어요.');
+      }
     } catch (_) {
       _showMessage('사진을 불러오지 못했어요.');
     } finally {
