@@ -138,7 +138,7 @@ class ApiMealFoodRepository implements MealFoodRepository {
         'nutrients': {
           'kcal': food.kcal,
           for (final MapEntry(:key, :value) in _nutrientKeys.entries)
-            if (value(food) case final v?) key: v,
+            key: ?value(food),
         },
       },
     ) as Map<String, dynamic>;
@@ -210,8 +210,9 @@ class ApiMealFoodRepository implements MealFoodRepository {
 
   MealFood _summary(Map<String, dynamic> json) {
     final food = _food(json, nutrients: {'kcal': json['kcal']});
-    if (json['favorite'] is bool)
+    if (json['favorite'] is bool) {
       _favorites[food.id] = json['favorite'] as bool;
+    }
     return food;
   }
 

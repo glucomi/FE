@@ -47,10 +47,9 @@ abstract final class ApiConfig {
 
   /// 카카오 로그인(MO-LOGIN-010)을 쓸 수 있는 빌드인지
   ///
-  /// 키가 없으면 로그인 화면 없이 약관 동의(MO-SIGNUP-010)부터 시작함
-  /// (서버 웹 로그인·CORS 준비 전까지 이 상태로 배포)
-  static bool get kakaoLoginEnabled =>
-      kIsWeb ? kakaoRestApiKey.isNotEmpty : kakaoNativeAppKey.isNotEmpty;
+  /// 웹은 서버가 인가 URL을 만들어 주므로 항상 가능.
+  /// 앱(네이티브)은 KAKAO_NATIVE_APP_KEY 가 없으면 약관 동의(MO-SIGNUP-010)부터 시작
+  static bool get kakaoLoginEnabled => kIsWeb || kakaoNativeAppKey.isNotEmpty;
 
   static const Duration timeout = Duration(seconds: 15);
 }

@@ -18,6 +18,7 @@ class ApiClient {
     String baseUrl = ApiConfig.baseUrl,
   }) : _http = httpClient ?? http.Client(),
        _session = session ?? AuthSession.instance,
+       // ignore: prefer_initializing_formals
        _baseUrl = baseUrl;
 
   static final ApiClient instance = ApiClient();

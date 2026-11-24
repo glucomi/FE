@@ -346,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
           aiRecorded: card.aiStatus == AiFoodStatus.done,
           onDelete: onDelete,
           onEdit: canEdit
-              ? () => _editMeal(glycemicContext, card, editable!, repository!)
+              ? () => _editMeal(glycemicContext, card, editable!, repository)
               : null,
         ),
       ),
@@ -472,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
         type: AppToastType.success,
       );
       if (!mounted) return null;
-      return _addMealCard(
+      return await _addMealCard(
         record,
         aiStatus: AiFoodStatus.done,
         photo: bytes,

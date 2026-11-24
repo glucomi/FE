@@ -19,6 +19,17 @@ class LoginResult {
   final bool onboardingCompleted;
 }
 
+/// GET /api/auth/kakao/authorize-url 결과
+class KakaoAuthorizeUrl {
+  const KakaoAuthorizeUrl({required this.authorizeUrl, required this.state});
+
+  /// 카카오 로그인 페이지 주소 (그대로 연다)
+  final String authorizeUrl;
+
+  /// 인가 URL에 들어간 state — 콜백으로 돌아온 state와 비교
+  final String state;
+}
+
 class AuthApi {
   AuthApi([ApiClient? client]) : _client = client ?? ApiClient.instance;
 
@@ -40,6 +51,21 @@ class AuthApi {
       isNewMember: json['isNewMember'] == true,
       signupCompleted: json['signupCompleted'] == true,
       onboardingCompleted: json['onboardingCompleted'] == true,
+    );
+  }
+
+  /// 웹 카카오 로그인 페이지 주소 발급
+  ///
+  /// redirectUri 는 서버에 등록된 값만 가능 (그 외 400 AUTH_4000)
+  Future<KakaoAuthorizeUrl> kakaoAuthorizeUrl(String redirectUri) async {
+    final json = await _client.get(
+      '/api/auth/kakao/authorize-url',
+      query: {'redirectUri': redirectUri},
+      auth: false,
+    ) as Map<String, dynamic>;
+    return KakaoAuthorizeUrl(
+      authorizeUrl: json['authorizeUrl'] as String,
+      state: json['state'] as String,
     );
   }
 

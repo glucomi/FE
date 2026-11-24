@@ -22,7 +22,7 @@ import 'package:glucomi/features/weight/weight_models.dart';
 /// - 로그인 토큰이 있으면 GET /api/members/me 로 가입/온보딩 상태를 보고
 ///   약관 동의 / 큐레이션 / 홈 중 알맞은 곳에서 시작
 /// - 토큰이 없으면 MO-LOGIN-010 카카오 로그인 화면부터 시작
-///   (카카오 키가 없는 빌드는 로그인 없이 약관 동의부터 시작)
+///   (네이티브 앱에서 카카오 키가 없는 빌드만 약관 동의부터 시작)
 class AppStart extends StatefulWidget {
   const AppStart({super.key, this.memberApi, this.kakaoLoginEnabled});
 
@@ -47,11 +47,13 @@ class _AppStartState extends State<AppStart> {
 
   void _onSessionChanged() {
     if (!mounted) return;
-    setState(
-      () => _me = AuthSession.instance.isLoggedIn
-          ? (widget.memberApi ?? MemberApi()).me()
-          : null,
-    );
+    // 화살표 함수로 쓰면 대입한 Future 를 돌려줘서 setState 가 에러를 냄
+    final me = AuthSession.instance.isLoggedIn
+        ? (widget.memberApi ?? MemberApi()).me()
+        : null;
+    setState(() {
+      _me = me;
+    });
   }
 
   @override

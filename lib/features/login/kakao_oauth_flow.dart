@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -15,8 +13,8 @@ class KakaoLoginCancelled implements Exception {
 }
 
 /// Native: Kakao SDK -> Kakao access token -> BE JWT.
-/// Web: Kakao authorize redirect -> BE exchanges code -> BE JWT.
-/// The web flow requires the BE /api/auth/kakao/code endpoint.
+/// Web: BE 인가 URL(GET /api/auth/kakao/authorize-url) -> 카카오 로그인
+///      -> /auth/kakao/callback 으로 돌아온 code 를 BE(POST /api/auth/kakao/code)가 교환 -> BE JWT.
 class KakaoOAuthFlow {
   KakaoOAuthFlow({AuthApi? api}) : _api = api ?? AuthApi();
   final AuthApi _api;
@@ -45,25 +43,14 @@ class KakaoOAuthFlow {
   }
 
   Future<void> _startWeb() async {
-    if (ApiConfig.kakaoRestApiKey.isEmpty ||
-        ApiConfig.kakaoRedirectUri.isEmpty) {
-      throw StateError('KAKAO_REST_API_KEY와 KAKAO_REDIRECT_URI를 설정해주세요.');
-    }
-    // A cryptographically random state mitigates login CSRF and is checked
-    // after the full-page redirect using secure, same-origin storage.
-    final random = Random.secure();
-    final state = List<int>.generate(
-      32,
-      (_) => random.nextInt(256),
-    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-    await _storage.write(key: _stateKey, value: state);
-    final uri = Uri.https('kauth.kakao.com', '/oauth/authorize', {
-      'response_type': 'code',
-      'client_id': ApiConfig.kakaoRestApiKey,
-      'redirect_uri': ApiConfig.kakaoRedirectUri,
-      'state': state,
-    });
-    if (!await launchUrl(uri, webOnlyWindowName: '_self')) {
+    // 카카오 인가 URL·state 는 서버가 만들어 줌 (FE에 REST API 키 불필요)
+    final auth = await _api.kakaoAuthorizeUrl(ApiConfig.kakaoRedirectUri);
+    // 전체 페이지 이동 후 돌아왔을 때 비교하려고 저장
+    await _storage.write(key: _stateKey, value: auth.state);
+    if (!await launchUrl(
+      Uri.parse(auth.authorizeUrl),
+      webOnlyWindowName: '_self',
+    )) {
       throw StateError('카카오 인증 페이지를 열지 못했어요.');
     }
   }

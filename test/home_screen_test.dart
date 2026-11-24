@@ -201,6 +201,9 @@ void main() {
   testWidgets('일일 카드를 누르면 COM-POP-11 이 열림', (tester) async {
     await mount(tester, HomeData.empty());
 
+    // 화면(800px) 아래에 있어서 보이게 스크롤한 뒤 누름
+    await tester.ensureVisible(find.text('일일 카드'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('일일 카드'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('daily-card')), findsOneWidget);

@@ -56,11 +56,15 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   void _onChanged() {
     final data = widget.repository.data;
-    if (data != null && mounted) setState(() => _future = Future.value(data));
+    if (data != null && mounted) setState(() {
+      _future = Future.value(data);
+    });
   }
 
   void _retry() {
-    setState(() => _future = widget.repository.load(sensor: widget.sensor));
+    setState(() {
+      _future = widget.repository.load(sensor: widget.sensor);
+    });
   }
 
   void _notReady(String feature) {

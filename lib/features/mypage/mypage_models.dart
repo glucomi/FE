@@ -162,6 +162,7 @@ class MyPageData {
 ///   앱이 켜져 있는 동안만 메모리에 들고 있음 (API 생기면 여기만 바꾸면 됨)
 class MyPageRepository extends ChangeNotifier {
   MyPageRepository({MemberApi? memberApi, MyPageData? initial})
+    // ignore: prefer_initializing_formals
     : _memberApi = memberApi,
       _data = initial;
 
